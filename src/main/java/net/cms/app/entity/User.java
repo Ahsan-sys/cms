@@ -12,19 +12,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class User implements UserDetails {
-    private int id;
+    private String userId;
     private String name;
     private String email;
     private String password;
-    private Role role;
-
-    public void setRoleFromString(String roleStr) {
-        this.role = Role.valueOf(roleStr.toUpperCase());
-    }
+    private String phoneNumber;
+    private String role;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.getRole()));
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     @Override
