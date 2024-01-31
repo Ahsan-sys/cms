@@ -19,6 +19,7 @@ create table users (
 
 create table profiles (
     id int(11) primary key AUTO_INCREMENT not null,
+    uuid varchar(100) not null unique default uuid(),
     role varchar(50) unique not null,
     created_dt timestamp not null default current_timestamp(),
     updated_dt timestamp not null default current_timestamp() ON update current_timestamp(),

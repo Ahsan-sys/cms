@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
@@ -23,12 +25,12 @@ public class JwtUtil {
     private String SECRET_KEY;
 
     @Value("${app.name}")
-    private String appName;
+    private String APP_NAME;
 
     @Value("${access.token.expiry.time}")
-    private String accessTokenExpiryTime;
+    private String ACCESS_TOKEN_EXPIRY_TIME;
 
-    private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.HS256;
+    private SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     public String extractUserId(String token){
         return extractClaim(token, Claims::getSubject);
@@ -53,11 +55,42 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token){
+    public Claims extractAllClaims(String token){
         return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    public Boolean isTokenExpired(String token){ return extractExpiration(token).before(new Date()); }
+
+    public String generateAccessToken(String userId,String email,String role){
+        Map<String,Object> claims = new HashMap<>();
+        claims.put("userId",userId);
+        claims.put("role",role);
+        claims.put("email",email);
+
+        return Jwts.builder()
+                .setIssuer(APP_NAME)
+                .setClaims(claims)
+                .setSubject(userId)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME)))
+                .signWith(SIGNATURE_ALGORITHM,SECRET_KEY).compact();
+    }
+
+    public String generateRefreshToken(String userId){
+        return Jwts.builder()
+                .setIssuer(APP_NAME)
+                .setSubject(userId)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .signWith(SIGNATURE_ALGORITHM,SECRET_KEY).compact();
+    }
+
+    public Date createExpiry(Long expiryTime){
+        return new Date(new Date().getTime() + (expiryTime*86400*1000));
+    }
+
+
 }
