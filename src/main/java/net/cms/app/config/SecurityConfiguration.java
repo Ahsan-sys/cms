@@ -70,10 +70,6 @@ public class SecurityConfiguration {
         return config.getAuthenticationManager();
     }
 
-    private String getAdminRoles(){
-        return "admin";
-    }
-
     @Bean
     private UserService getUserService(){
         return new UserService();
