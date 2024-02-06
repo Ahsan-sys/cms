@@ -30,31 +30,22 @@ create table profiles (
 );
 
 create table user_sessions (
-    id int(11) primary key AUTO_INCREMENT not null,
-    user_id int(11) not null,
+    user_id int(11) primary key not null,
     access_token varchar(255),
-    refresh_token varchar(255),
-    start_dt timestamp not null default current_timestamp(),
-    end_dt timestamp not null default current_timestamp()
+    refresh_token varchar(255)
 );
 
 create table profile_authorities(
     id int(11) primary key AUTO_INCREMENT not null,
     profile_id int(11) not null,
     url_id int(11) default 0,
-    url_group_id int(11) default 0
+    request_methods varchar(100)
 );
 
-create table cms_urls(
+create table urls(
     id int(11) primary key AUTO_INCREMENT not null,
     url_name varchar(255),
-    url text,
-    url_group_id int(11) default 0
-);
-
-create table cms_url_groups(
-    id int(11) primary key AUTO_INCREMENT not null,
-    group_name varchar(255)
+    url text
 );
 
 create table config(

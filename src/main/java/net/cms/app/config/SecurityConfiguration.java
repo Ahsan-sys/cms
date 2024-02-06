@@ -1,7 +1,7 @@
 package net.cms.app.config;
 
 import lombok.RequiredArgsConstructor;
-import net.cms.app.filter.JwtAuthenticationFilter;
+import net.cms.app.filter.AuthorizationFilter;
 import net.cms.app.filter.UserAuthenticationFilter;
 import net.cms.app.service.MyUserDetailsService;
 import net.cms.app.service.UserService;
@@ -26,7 +26,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
     private final MyUserDetailsService myUserDetailsService;
@@ -42,12 +41,13 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(request -> request
                 .requestMatchers("/api/signup").permitAll()
+                .requestMatchers("/api/admin").hasAnyAuthority("super_admin")
                 .anyRequest().authenticated()
         )
         .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())
-        .addFilterBefore(userAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterBefore(jwtAuthenticationFilter, UserAuthenticationFilter.class);
+        .addFilterBefore(authorizationFilter(), UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(userAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -71,12 +71,16 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    private UserService getUserService(){
+    public UserService getUserService(){
         return new UserService();
     }
 
-    @Bean
-    private JwtUtil getJwtUtil(){
+    public JwtUtil getJwtUtil(){
         return new JwtUtil();
+    }
+
+    @Bean
+    public AuthorizationFilter authorizationFilter(){
+        return new AuthorizationFilter();
     }
 }

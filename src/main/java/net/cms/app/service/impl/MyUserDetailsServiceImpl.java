@@ -1,6 +1,7 @@
 package net.cms.app.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.cms.app.service.MyUserDetailsService;
 import net.cms.app.service.UserService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -8,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MyUserDetailsServiceImpl implements MyUserDetailsService {
@@ -21,7 +23,7 @@ public class MyUserDetailsServiceImpl implements MyUserDetailsService {
                 try{
                     return userService.findByEmail(username);
                 }catch (Exception e){
-                    e.printStackTrace();
+                    log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                     throw e;
                 }
             }

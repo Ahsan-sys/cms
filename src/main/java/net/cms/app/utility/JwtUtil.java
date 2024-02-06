@@ -3,23 +3,21 @@ package net.cms.app.utility;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import net.cms.app.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
-@Component
 public class JwtUtil {
-    @Autowired
-    private UserService userService;
 
     @Value("${jwt.secret.key}")
     private String SECRET_KEY;
@@ -30,7 +28,9 @@ public class JwtUtil {
     @Value("${access.token.expiry.time}")
     private String ACCESS_TOKEN_EXPIRY_TIME;
 
-    private SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
+    private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
+
+
 
     public String extractUserId(String token){
         return extractClaim(token, Claims::getSubject);
@@ -63,13 +63,14 @@ public class JwtUtil {
                 .getBody();
     }
 
-    public Boolean isTokenExpired(String token){ return extractExpiration(token).before(new Date()); }
+    public boolean isTokenExpired(String token){ return extractExpiration(token).before(new Date()); }
 
     public String generateAccessToken(String userId,String email,String role){
         Map<String,Object> claims = new HashMap<>();
         claims.put("userId",userId);
         claims.put("role",role);
         claims.put("email",email);
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
 
         return Jwts.builder()
                 .setIssuer(APP_NAME)
@@ -77,20 +78,53 @@ public class JwtUtil {
                 .setSubject(userId)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME)))
-                .signWith(SIGNATURE_ALGORITHM,SECRET_KEY).compact();
+                .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
     }
 
     public String generateRefreshToken(String userId){
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
         return Jwts.builder()
                 .setIssuer(APP_NAME)
                 .setSubject(userId)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .signWith(SIGNATURE_ALGORITHM,SECRET_KEY).compact();
+                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME+2)))
+                .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
     }
 
     public Date createExpiry(Long expiryTime){
-        return new Date(new Date().getTime() + (expiryTime*86400*1000));
+        return new Date(System.currentTimeMillis() + expiryTime * 60 * 1000);
     }
 
+    public JSONObject validateToken(String token,String tokenType,UserService userService) throws Exception{
+        final String userId = extractUserId(token);
 
+        JSONObject response = new JSONObject();
+
+        try{
+            if(userService.validateUserToken(userId,token,tokenType)){
+                JSONObject rsp = userService.findByIdOrEmail(userId,null);
+
+                System.out.println("user in JwtUtil================="+rsp);
+                if(rsp.getInt("status") == 1) {
+                    JSONObject user = rsp.getJSONObject("data");
+                    if(CommonMethods.parseNullInt(user.getInt("id"))>0) {
+                        response.put("isValid", true);
+                        response.put("userId", user.getInt("id"));
+                        response.put("isDeleted", user.getBoolean("isDeleted"));
+                        response.put("role", user.getString("role"));
+                    }
+                }
+            }
+        }catch (Exception e){
+            log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+        }
+
+        if(response.opt("isValid")!=null){
+            response.put("isValid",false);
+            response.put("userId",0);
+        }
+
+        System.out.println("sending response JwtUtil================="+response);
+        return response;
+    }
 }
