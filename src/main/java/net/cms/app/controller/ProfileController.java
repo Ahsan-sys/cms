@@ -57,8 +57,10 @@ public class ProfileController {
         }else if(role.equalsIgnoreCase("super_admin")){
             rsp.setStatus(0);
             rsp.setMessage("This role can not be created");
+        }else if(!profileObj.has("created_by")){
+            rsp.setStatus(0);
+            rsp.setMessage("Created by is missing");
         }else{
-
             if(profileService.createRole(profileObj)){
                 rsp.setStatus(1);
                 rsp.setMessage("Role created successfully");
@@ -91,6 +93,9 @@ public class ProfileController {
         }else if(profileService.getProfileWithId(id).getString("role").equalsIgnoreCase("super_admin")){
             rsp.setStatus(0);
             rsp.setMessage("Can not update role super admin");
+        }else if(!profileObj.has("updated_by")){
+            rsp.setStatus(0);
+            rsp.setMessage("Updated by is missing");
         }else{
             if(profileService.updateRole(profileObj,id)){
                 rsp.setStatus(1);

@@ -2,6 +2,7 @@ package net.cms.app.controller;
 
 import lombok.AllArgsConstructor;
 import net.cms.app.response.GenericResponse;
+import net.cms.app.service.ProfileService;
 import net.cms.app.service.UserService;
 import net.cms.app.utility.CommonMethods;
 import org.json.JSONArray;
@@ -17,6 +18,9 @@ public class UserController {
 
     @Autowired
     private final UserService userService;
+
+    @Autowired
+    private final ProfileService profileService;
 
     @GetMapping
     public ResponseEntity<String> getAllUsersApi(){
@@ -55,13 +59,18 @@ public class UserController {
             emptyField = "Password";
         }else if(CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
+        }else if(CommonMethods.parseNullInt(userObj.getInt("created_by"))==0){
+            emptyField = "Created by";
         }
 
         if(!CommonMethods.parseNullString(emptyField).isEmpty()){
             rsp.setStatus(0);
             rsp.setMessage(emptyField+" is required");
         }else {
-            if(userService.findByEmail(userObj.getString("email"))==null) {
+            if(profileService.getProfileWithId(userObj.getInt("profile_id")).getString("role").equalsIgnoreCase("super_admin")){
+                rsp.setStatus(0);
+                rsp.setMessage("Super admin profile can not be assigned");
+            }else if(userService.findByEmail(userObj.getString("email"))==null) {
                 if (userService.createUser(userObj)) {
                     rsp.setStatus(1);
                     rsp.setMessage("User created successfully");
@@ -92,19 +101,25 @@ public class UserController {
             emptyField = "User id";
         }else if(CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
+        }else if(CommonMethods.parseNullInt(userObj.getInt("updated_by"))==0){
+            emptyField = "Updated by";
         }
 
         if(CommonMethods.parseNullString(emptyField).isEmpty()){
             rsp.setStatus(0);
             rsp.setMessage(emptyField+" is required");
         }else {
-            if(userService.updateUser(userObj,id)){
+            if(profileService.getProfileWithId(id).getString("role").equalsIgnoreCase("super_admin")){
+                rsp.setStatus(0);
+                rsp.setMessage("Super admin profile can not be assigned");
+            }else if(userService.updateUser(userObj,id)){
                 rsp.setStatus(1);
                 rsp.setMessage("User updated successfully");
             }else{
                 rsp.setStatus(0);
                 rsp.setMessage("Error updating user");
             }
+
         }
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }

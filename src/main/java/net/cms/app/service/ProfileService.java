@@ -58,14 +58,17 @@ public class ProfileService {
     @Transactional(rollbackFor = Exception.class)
     public boolean createRole(JSONObject profileObj){
         String role = profileObj.getString("role");
+        String createdBy = profileObj.getString("created_by");
         JSONArray authorities = profileObj.getJSONArray("authorities");
+
         try{
-            final String sql = "insert into profiles (role) values (?)";
+            final String sql = "insert into profiles (role,created_by) values (?,?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbc.update(
                 connection -> {
                     PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
                     ps.setString(1, role);
+                    ps.setString(2, createdBy);
                     return ps;
                 },
             keyHolder);
@@ -90,9 +93,11 @@ public class ProfileService {
     @Transactional(rollbackFor = Exception.class)
     public boolean updateRole(JSONObject profileObj,int id){
         String role = profileObj.getString("role");
+        String updatedBy = profileObj.getString("updated_by");
         JSONArray authorities = profileObj.getJSONArray("authorities");
+
         try{
-            int rows = jdbc.update("update profiles set role =? where id=?",role,id);
+            int rows = jdbc.update("update profiles set role =?,updated_by=? where id=?",role,updatedBy,id);
             if(rows > 0){
                 deleteProfileAuthorities(id);
                 final String sql2 = "INSERT INTO profile_authorities (profile_id, url_id, request_methods) VALUES (?, ?, ?)";

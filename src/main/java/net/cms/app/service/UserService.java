@@ -234,6 +234,11 @@ public class UserService{
 
     public boolean createUser(JSONObject obj){
         try {
+            int createdBy = 0;
+            if(obj.has("created_by")){
+                createdBy = CommonMethods.parseNullInt(obj.getInt("profile_id"));
+            }
+
             Integer userProfilId =0;
             if(obj.has("profile_id")){
                 userProfilId = CommonMethods.parseNullInt(obj.getInt("profile_id"));
@@ -242,9 +247,9 @@ public class UserService{
                 userProfilId = jdbc.queryForObject("select id from profiles where role=?", Integer.class, "user");
             }
 
-            int rows = jdbc.update("insert into users (name,password,email,phone_number,profile_id) values (?,?,?,?,?)",
+            int rows = jdbc.update("insert into users (name,password,email,phone_number,profile_id,created_by) values (?,?,?,?,?,?)",
                     obj.getString("name"), passwordEncoder.encode(obj.getString("password")), obj.getString("email"),
-                    obj.getString("phone_number"), userProfilId);
+                    obj.getString("phone_number"), userProfilId,createdBy);
             return rows > 0;
         }catch (Exception e){
             System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
@@ -264,6 +269,10 @@ public class UserService{
             if (obj.has("profile_id")) {
                 query += ", profile_id = ?";
                 parameters.add(obj.getInt("profile_id"));
+            }
+            if (obj.has("updated_by")) {
+                query += ", updated_by = ?";
+                parameters.add(obj.getInt("updated_by"));
             }
             query += " WHERE id = ?";
 

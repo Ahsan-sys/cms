@@ -42,6 +42,9 @@ public class LoginController {
             if (userObj.has("profile_id")) {
                 userObj.remove("profile_id");
             }
+            if (userObj.has("updated_by")) {
+                userObj.remove("updated_by");
+            }
 
             if (!CommonMethods.parseNullString(emptyField).isEmpty()) {
                 rsp.setStatus(0);

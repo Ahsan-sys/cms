@@ -58,4 +58,13 @@ insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/c
 insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'super_admin';
 insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'user' and u.url in ("/api/cms/refresh_token","/api/cms/logout","/api/cms/updateUser");
 
-insert into config (code,val) values ("template_upload_path","D:/work/cms/templates"),("document_upload_path","D:/work/cms/documents"),("max_file_size","2");
+insert into config (code,val) values ("admin_documents","D:/work/cms/admin"),("user_documents","D:/work/cms/documents"),("max_file_size","2");
+
+create table template_documents(
+    id int(11) primary key AUTO_INCREMENT not null,
+    uuid varchar(100) not null unique default uuid(),
+    created_dt timestamp not null default current_timestamp(),
+    updated_dt timestamp not null default current_timestamp() ON update current_timestamp(),
+    created_by int(11) default 0,
+    updated_by int(11),
+);
