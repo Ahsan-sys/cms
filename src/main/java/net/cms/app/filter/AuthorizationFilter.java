@@ -5,8 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import net.cms.app.response.GenericResponse;
+import net.cms.app.response.RestResponse;
 import net.cms.app.service.UserService;
 import net.cms.app.utility.CommonMethods;
 import net.cms.app.utility.JwtUtil;
@@ -16,10 +15,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Slf4j
 public class AuthorizationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil = new JwtUtil();
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     private UserService userService;
@@ -28,7 +27,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String requestPath = request.getServletPath();
         String requestMethod = request.getMethod();
-        GenericResponse errorRsp = new GenericResponse();
+        RestResponse errorRsp = new RestResponse();
 
         if(requestPath.startsWith("/api/admin") || requestPath.startsWith("/api/cms")){
             if(requestPath.startsWith("/api/cms/refresh_token")){
@@ -37,10 +36,9 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                     errorRsp.setStatus(0);
                     errorRsp.setMessage("Refresh-token missing");
                 }else{
-                    if(jwtUtil.isTokenExpired(refreshToken)){
-                        errorRsp.setStatus(0);
-                        errorRsp.setMessage("Refresh-token is expired");
-                    }else{
+                    try{
+                        jwtUtil.isTokenExpired(refreshToken);
+
                         try {
                             JSONObject validJson = jwtUtil.validateToken(refreshToken,"refresh_token",userService);
                             if(!validJson.getBoolean("isValid")){
@@ -48,22 +46,25 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                                 errorRsp.setMessage("Invalid user for token refresh");
                             }
                         } catch (Exception e) {
-                            log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                             errorRsp.setStatus(0);
                             errorRsp.setMessage(e.getMessage());
                         }
+
+                    }catch (Exception e){
+                        errorRsp.setStatus(0);
+                        errorRsp.setMessage(e.getMessage());
                     }
+
                 }
             }else{
                 String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
                 if(accessToken.isEmpty()){
-                    errorRsp.setStatus(0);
+                    errorRsp.setStatus(403);
                     errorRsp.setMessage("Access-token missing");
                 }else{
-                    if(jwtUtil.isTokenExpired(accessToken)){
-                        errorRsp.setStatus(0);
-                        errorRsp.setMessage("Access-token is expired");
-                    }else{
+                    try{
+                        jwtUtil.isTokenExpired(accessToken);
                         try {
                             JSONObject validJson = jwtUtil.validateToken(accessToken,"access_token",userService);
                             if(!validJson.getBoolean("isValid")){
@@ -71,28 +72,32 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                                 errorRsp.setMessage("Invalid User");
                             }else{
                                 String role = jwtUtil.extractUserRole(accessToken);
-                                Boolean userAuthorized = userService.checkUrlValidity(role,requestPath,requestMethod);
+                                String refinedpath = requestPath;
+                                if(requestPath.split("/").length>4){
+                                    refinedpath = "/"+requestPath.split("/")[1]+"/"+requestPath.split("/")[2]+"/"+requestPath.split("/")[3];
+                                }
+                                Boolean userAuthorized = userService.checkUrlValidity(role,refinedpath,requestMethod);
                                 if(!userAuthorized){
                                     errorRsp.setStatus(0);
                                     errorRsp.setMessage("Unauthorized User");
+                                }else{
+                                    filterChain.doFilter(request, response);
                                 }
                             }
                         } catch (Exception e) {
-                            log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                             errorRsp.setStatus(0);
                             errorRsp.setMessage(e.getMessage());
                         }
+                    }catch (Exception e){
+                        errorRsp.setStatus(0);
+                        errorRsp.setMessage(e.getMessage());
                     }
                 }
             }
         }else{
             filterChain.doFilter(request, response);
         }
-
-        if(errorRsp.getStatus()==1){
-            new ObjectMapper().writeValue(response.getOutputStream(),errorRsp);
-        }else{
-            filterChain.doFilter(request, response);
-        }
+        new ObjectMapper().writeValue(response.getOutputStream(),errorRsp);
     }
 }

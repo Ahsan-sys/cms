@@ -1,27 +1,38 @@
 package net.cms.app.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.cms.app.entity.User;
 import net.cms.app.response.GenericResponse;
 import net.cms.app.utility.CommonMethods;
 import net.cms.app.utility.JwtUtil;
 import net.cms.app.utility.ResponseMessage;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCallback;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
-@Service
-@RequiredArgsConstructor
 public class UserService{
     @Autowired
     private JdbcTemplate jdbc;
+
+    @Autowired
+    JwtUtil jwtUtil;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(PasswordEncoder passwordEncoder){
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public User findByEmail(String email) {
         User user = new User();
@@ -39,7 +50,7 @@ public class UserService{
                     user.setPhoneNumber(rs.getString("phone_number"));
                 }
             }catch(Exception e){
-                log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                 throw e;
             }
             return null;
@@ -48,7 +59,8 @@ public class UserService{
         if(user.getEmail() != null){
             return user;
         }else{
-            throw new UsernameNotFoundException("User '"+email+"' Not Found");
+            System.out.println("User '"+email+"' Not Found");
+            return null;
         }
     }
 
@@ -65,9 +77,9 @@ public class UserService{
         jdbc.execute(query,(PreparedStatementCallback<Void>) ps->{
             try{
                 if(userId !=null && !userId.isEmpty()){
-                    ps.setString(1,email);
-                }else{
                     ps.setString(1,userId);
+                }else{
+                    ps.setString(1,email);
                 }
 
                 ResultSet rs = ps.executeQuery();
@@ -87,17 +99,17 @@ public class UserService{
                     rsp.setStatus(0);
                 }
             }catch(Exception e){
-                log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                 rsp.setMessage(e.getMessage());
                 rsp.setStatus(0);
             }
             return null;
         });
-
         return rsp.rspToJson();
     }
 
     public void setToken(int userId,String accessToken,String refreshToken){
+        deleteUserSession(String.valueOf(userId));
         String query = "insert into user_sessions (user_id,access_token,refresh_token) values (?,?,?)";
         jdbc.execute(query,(PreparedStatementCallback<Void>) ps->{
              try{
@@ -106,40 +118,44 @@ public class UserService{
                  ps.setString(3,refreshToken);
                  ps.executeUpdate();
              }catch (Exception e){
-                 log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                 System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
              }
              return null;
         });
     }
 
-    public boolean verifyIfLogedin(String userId){
-        JwtUtil jwtUtil = new JwtUtil();
 
-        return Boolean.TRUE.equals(jdbc.execute("select * from user_sessions where user_id=?", (PreparedStatementCallback<Boolean>) ps -> {
+    public boolean verifyIfLogedIn(String userId){
+        String accessToken = jdbc.execute("select * from user_sessions where user_id=?", (PreparedStatementCallback<String>) ps -> {
             try {
                 ps.setString(1, userId);
                 ResultSet rs = ps.executeQuery();
-                if (rs.next()) {
-                    String refreshToken = CommonMethods.parseNullString(rs.getString("refresh_token"));
-                    if (jwtUtil.isTokenExpired(refreshToken)) {
-                        deleteUserSession(jwtUtil.extractUserId(refreshToken));
-                        return false;
-                    } else {
-                        return true;
-                    }
-                } else {
-                    return false;
+                if(rs.next()){
+                    return CommonMethods.parseNullString(rs.getString("access_token"));
+                }else{
+                    return "";
                 }
             } catch (Exception e) {
-                log.debug(e.getMessage() + " || Trace: " + e.getStackTrace()[0] + " || " + e.getStackTrace()[1]);
-                return true;
+                System.out.println(Arrays.toString(e.getStackTrace()));
+                throw e;
             }
-        }));
+        });
+
+        if(!CommonMethods.parseNullString(accessToken).isEmpty()){
+            try{
+                jwtUtil.isTokenExpired(accessToken);
+                return true;
+            }catch (Exception e){
+                System.out.println(Arrays.toString(e.getStackTrace()));
+                jdbc.update("delete from user_sessions where user_id=?", userId);
+                return false;
+            }
+        }else{
+            return false;
+        }
     }
 
-    public void deleteUserSession(String userId){
-        int rowsAffected = jdbc.update("delete from user_sessions where user_id=?", userId);
-    }
+    public void deleteUserSession(String userId){jdbc.update("delete from user_sessions where user_id=?", userId);}
 
     public Boolean validateUserToken(String userId,String token, String tokenType){
         String query = "select count(*) as count from users u join user_sessions us on us.user_id=u.id where u.id=? and us."+tokenType+"=?";
@@ -148,11 +164,12 @@ public class UserService{
                 ps.setString(1,userId);
                 ps.setString(2,token);
                 ResultSet rs = ps.executeQuery();
-
-                if(rs.next()) return rs.getInt("count")>0;
+                if(rs.next()) {
+                    return rs.getInt("count")>0;
+                }
                 else return false;
             }catch (Exception e){
-                log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                 return false;
             }
         } );
@@ -162,13 +179,13 @@ public class UserService{
         String query = "SELECT COUNT(*) as count FROM profiles p " +
                 "LEFT JOIN profile_authorities pa ON p.id = pa.profile_id " +
                 "LEFT JOIN urls u ON pa.url_id = u.id " +
-                "WHERE p.role = ? AND pa.request_methods LIKE ? AND u.url = ?";
+                "WHERE p.role = ? AND (pa.request_methods = ? or pa.request_methods='*') AND u.url like ?";
 
         return jdbc.execute(query,(PreparedStatementCallback<Boolean>) ps->{
             try{
                 ps.setString(1,role);
-                ps.setString(2,"%"+method+"%");
-                ps.setString(3,url);
+                ps.setString(2,method);
+                ps.setString(3,url+"%");
                 ResultSet rs = ps.executeQuery();
                 if(rs.next()){
                     return rs.getInt("count")>0;
@@ -177,9 +194,102 @@ public class UserService{
                     return false;
                 }
             }catch (Exception e){
-                log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
-                return false;
+                System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                throw e;
             }
         } );
+    }
+
+    public JSONArray getAllUsers(){
+        try{
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,name,email,phone_number FROM users order by id");
+
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> row : rows) {
+                JSONObject jsonObject = new JSONObject(row);
+                jsonArray.put(jsonObject);
+            }
+            return jsonArray;
+        }catch (Exception e){
+            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            return null;
+        }
+    }
+
+    public JSONObject getUserWithId(int id){
+        try{
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users WHERE id = ?", id);
+
+            if (!rows.isEmpty()) {
+                Map<String, Object> row = rows.get(0);
+                return new JSONObject(row);
+            } else {
+                return null;
+            }
+        }catch (Exception e){
+            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            return null;
+        }
+    }
+
+    public boolean createUser(JSONObject obj){
+        try {
+            Integer userProfilId =0;
+            if(obj.has("profile_id")){
+                userProfilId = CommonMethods.parseNullInt(obj.getInt("profile_id"));
+            }
+            if(userProfilId<=0){
+                userProfilId = jdbc.queryForObject("select id from profiles where role=?", Integer.class, "user");
+            }
+
+            int rows = jdbc.update("insert into users (name,password,email,phone_number,profile_id) values (?,?,?,?,?)",
+                    obj.getString("name"), passwordEncoder.encode(obj.getString("password")), obj.getString("email"),
+                    obj.getString("phone_number"), userProfilId);
+            return rows > 0;
+        }catch (Exception e){
+            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            return false;
+        }
+    }
+
+    public boolean updateUser(JSONObject obj,int id){
+        try{
+            String query = "UPDATE users SET name = ?, email = ?, phone_number = ?";
+
+            List<Object> parameters = new ArrayList<>();
+            parameters.add(obj.getString("name"));
+            parameters.add(obj.getString("email"));
+            parameters.add(obj.getString("phone_number"));
+
+            if (obj.has("profile_id")) {
+                query += ", profile_id = ?";
+                parameters.add(obj.getInt("profile_id"));
+            }
+            query += " WHERE id = ?";
+
+            parameters.add(obj.getInt("id"));
+
+            int result = jdbc.update(query, parameters.toArray());
+
+            return result>0;
+        }catch (Exception e){
+            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            return false;
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteUser(String id){
+        try{
+            int result = jdbc.update("delete from users where id=?",id);
+            if(result>0){
+                deleteUserSession(id);
+                return true;
+            }
+            return false;
+        }catch (Exception e){
+            System.out.println(e.getMessage() + " || Trace: "+ Arrays.toString(e.getStackTrace()));
+            return false;
+        }
     }
 }

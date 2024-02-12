@@ -14,6 +14,7 @@ import net.cms.app.service.UserService;
 import net.cms.app.utility.JwtUtil;
 import net.cms.app.utility.ResponseMessage;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,7 +29,11 @@ import java.io.IOException;
 public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private AuthenticationManager authenticationManager;
-    private JwtUtil jwtUtil = new JwtUtil();
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
     private UserService userService;
 
     @SneakyThrows
@@ -57,20 +62,22 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
         JSONObject rsp = new JSONObject();
 
-        boolean isAlreadyLoggedIn = userService.verifyIfLogedin(user.getUserId());
+        boolean isAlreadyLoggedIn = userService.verifyIfLogedIn(user.getUserId());
         if(!isAlreadyLoggedIn){
             String accessToken = jwtUtil.generateAccessToken(user.getUserId(),user.getEmail(),user.getRole());
             String refreshToken = jwtUtil.generateRefreshToken(user.getUserId());
 
             JSONObject userProfile = userService.findByIdOrEmail(user.getUserId(),null);
-
-            rsp.put("message","Signed In Successfully!");
-            rsp.put("status",1);
-            rsp.put("data",userProfile.getJSONObject("data"));
-            rsp.put("Access-Token",accessToken);
-            rsp.put("Refresh-Token",refreshToken);
-
-            userService.setToken(userProfile.getJSONObject("data").getInt("id"),accessToken,refreshToken);
+            if(userProfile.has("data")){
+                rsp.put("message","Signed In Successfully!");
+                rsp.put("status",1);
+                rsp.put("Access-Token",accessToken);
+                rsp.put("Refresh-Token",refreshToken);
+                userService.setToken(userProfile.getJSONObject("data").getInt("id"),accessToken,refreshToken);
+            }else{
+                rsp.put("message",userProfile.getString("message"));
+                rsp.put("status",0);
+            }
         }else{
             rsp.put("message","User already logged in");
             rsp.put("status",0);
@@ -78,8 +85,7 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
         response.setContentType("application/json");
 
-        new ObjectMapper().writeValue(response.getOutputStream(),rsp);
-        response.getOutputStream().flush();
+        new ObjectMapper().writeValue(response.getOutputStream(),rsp.toString());
     }
 
     @Override
@@ -92,7 +98,7 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
         response.setStatus(200);
 
         log.info("Login Failed! ");
-        new ObjectMapper().writeValue(response.getOutputStream(),rsp.rspToJson());
+        new ObjectMapper().writeValue(response.getOutputStream(),rsp.rspToJson().toString());
         response.getOutputStream().flush();
     }
 }

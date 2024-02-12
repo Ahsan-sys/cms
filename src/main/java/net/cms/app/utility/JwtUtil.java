@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.cms.app.service.UserService;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -56,8 +57,10 @@ public class JwtUtil {
     }
 
     public Claims extractAllClaims(String token){
+        SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
+
         return Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
+                .setSigningKey(secretKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -104,7 +107,6 @@ public class JwtUtil {
             if(userService.validateUserToken(userId,token,tokenType)){
                 JSONObject rsp = userService.findByIdOrEmail(userId,null);
 
-                System.out.println("user in JwtUtil================="+rsp);
                 if(rsp.getInt("status") == 1) {
                     JSONObject user = rsp.getJSONObject("data");
                     if(CommonMethods.parseNullInt(user.getInt("id"))>0) {
@@ -119,12 +121,11 @@ public class JwtUtil {
             log.debug(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
         }
 
-        if(response.opt("isValid")!=null){
+        if(response.isEmpty()){
             response.put("isValid",false);
             response.put("userId",0);
         }
 
-        System.out.println("sending response JwtUtil================="+response);
         return response;
     }
 }

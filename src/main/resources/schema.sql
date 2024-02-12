@@ -39,12 +39,11 @@ create table profile_authorities(
     id int(11) primary key AUTO_INCREMENT not null,
     profile_id int(11) not null,
     url_id int(11) default 0,
-    request_methods varchar(100)
+    request_methods varchar(25)
 );
 
 create table urls(
     id int(11) primary key AUTO_INCREMENT not null,
-    url_name varchar(255),
     url text
 );
 
@@ -53,3 +52,8 @@ create table config(
     val varchar(255),
     comments text
 );
+
+insert into profiles (role) value ("super_admin","user");
+insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/cms/refresh_token"),("/api/cms/logout"),("/api/cms/updateUser");
+insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'super_admin';
+insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'user' and u.url='';

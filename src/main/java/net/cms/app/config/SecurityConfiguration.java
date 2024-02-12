@@ -5,6 +5,7 @@ import net.cms.app.filter.AuthorizationFilter;
 import net.cms.app.filter.UserAuthenticationFilter;
 import net.cms.app.service.MyUserDetailsService;
 import net.cms.app.service.UserService;
+import net.cms.app.service.impl.MyUserDetailsServiceImpl;
 import net.cms.app.utility.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -28,10 +29,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfiguration {
 
     @Autowired
-    private final MyUserDetailsService myUserDetailsService;
-
-    @Autowired
     private AuthenticationConfiguration authenticationConfiguration;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
@@ -41,7 +40,7 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(request -> request
                 .requestMatchers("/api/signup").permitAll()
-                .requestMatchers("/api/admin").hasAnyAuthority("super_admin")
+                .requestMatchers("/api/admin/**","/api/cms/**").permitAll()
                 .anyRequest().authenticated()
         )
         .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -55,9 +54,14 @@ public class SecurityConfiguration {
     @Bean
     public AuthenticationProvider authenticationProvider(){
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(myUserDetailsService.userDetailsService());
+        authenticationProvider.setUserDetailsService(myUserDetailsServiceImpl().userDetailsService());
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return authenticationProvider;
+    }
+
+    @Bean
+    public MyUserDetailsServiceImpl myUserDetailsServiceImpl(){
+        return new MyUserDetailsServiceImpl();
     }
 
     @Bean
@@ -72,9 +76,10 @@ public class SecurityConfiguration {
 
     @Bean
     public UserService getUserService(){
-        return new UserService();
+        return new UserService(passwordEncoder());
     }
 
+    @Bean
     public JwtUtil getJwtUtil(){
         return new JwtUtil();
     }

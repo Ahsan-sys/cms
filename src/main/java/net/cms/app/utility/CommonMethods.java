@@ -14,7 +14,7 @@ public class CommonMethods {
         }
     }
 
-    static int parseNullInt(Object o)
+    public static int parseNullInt(Object o)
     {
         if (o == null) return 0;
         String s = o.toString();
