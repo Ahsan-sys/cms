@@ -70,6 +70,11 @@ public class LoginController {
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
+    @PostMapping("/pswdBcrypt")
+    public ResponseEntity<String> getBcryptPswrd(@RequestBody String pswrd){
+        return ResponseEntity.status(200).body(userService.bcryptPassword(pswrd));
+    }
+
     @PutMapping("/cms/updateUser/{id}")
     public ResponseEntity<String> updateUserApi(@RequestBody String obj,@PathVariable int id){
         JSONObject userObj = new JSONObject(obj);

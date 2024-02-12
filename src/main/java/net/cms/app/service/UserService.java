@@ -301,4 +301,8 @@ public class UserService{
             return false;
         }
     }
+
+    public String bcryptPassword(String pswrd){
+        return passwordEncoder.encode(pswrd);
+    }
 }
