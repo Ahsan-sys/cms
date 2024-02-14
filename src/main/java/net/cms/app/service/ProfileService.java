@@ -120,14 +120,22 @@ public class ProfileService {
         }
     }
 
-    public boolean updateRole(String role,int id){
-        try{
-            int rows = jdbc.update("update profiles set role =? where id=?",role,id);
-            return rows > 0;
-        }catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
-            return false;
-        }
+    public Boolean isProfileValid(int id){
+        return jdbc.execute("SELECT COUNT(*) as count FROM profiles WHERE id = ?",(PreparedStatementCallback<Boolean>) ps->{
+            try{
+                ps.setInt(1,id);
+                ResultSet rs = ps.executeQuery();
+                if(rs.next()){
+                    return rs.getInt("count")>0;
+                }
+                else{
+                    return false;
+                }
+            }catch (Exception e){
+                System.out.println(Arrays.toString(e.getStackTrace()));
+                return false;
+            }
+        } );
     }
 
     public Boolean profileHasUsers(int id){

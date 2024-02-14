@@ -23,7 +23,8 @@ public class CategoriesController {
     @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestBody String search){
+    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam String search){
+        //Need to make search optional
         String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
         String userId = jwtUtil.extractUserId(accessToken);
 
@@ -63,8 +64,10 @@ public class CategoriesController {
 
     @PostMapping
     public ResponseEntity<String> createCategoryApi(HttpServletRequest request, @RequestBody String title){
+        GenericResponse rsp = new GenericResponse();
         if(CommonMethods.parseNullString(title).isEmpty()){
-            return ResponseEntity.status(401).body("Title is required");
+            rsp.setStatus(0);
+            rsp.setMessage("Title is required");
         }else{
             String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
             String userId = jwtUtil.extractUserId(accessToken);
@@ -76,11 +79,13 @@ public class CategoriesController {
 
             boolean isInserted = categoriesService.createCategory(title,type,userId);
             if(isInserted){
-                return ResponseEntity.status(200).body("Category created successfully");
+                rsp.setMessage("Category created successfully");
             }else{
-                return ResponseEntity.status(200).body("Error creating category");
+                rsp.setStatus(0);
+                rsp.setMessage("Error creating category");
             }
         }
+        return ResponseEntity.ok(rsp.rspToJson().toString());
     }
 
     @DeleteMapping

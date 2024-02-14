@@ -202,7 +202,7 @@ public class UserService{
 
     public JSONArray getAllUsers(){
         try{
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,name,email,phone_number FROM users order by id");
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users order by id");
 
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> row : rows) {
@@ -236,7 +236,7 @@ public class UserService{
         try {
             int createdBy = 0;
             if(obj.has("created_by")){
-                createdBy = CommonMethods.parseNullInt(obj.getInt("profile_id"));
+                createdBy = CommonMethods.parseNullInt(obj.getInt("created_by"));
             }
 
             Integer userProfilId =0;

@@ -44,18 +44,18 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                             if(!validJson.getBoolean("isValid")){
                                 errorRsp.setStatus(0);
                                 errorRsp.setMessage("Invalid user for token refresh");
+                            }else{
+                                filterChain.doFilter(request, response);
                             }
                         } catch (Exception e) {
                             System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
                             errorRsp.setStatus(0);
                             errorRsp.setMessage(e.getMessage());
                         }
-
                     }catch (Exception e){
                         errorRsp.setStatus(0);
                         errorRsp.setMessage(e.getMessage());
                     }
-
                 }
             }else{
                 String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));

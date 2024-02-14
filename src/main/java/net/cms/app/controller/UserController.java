@@ -49,17 +49,17 @@ public class UserController {
         GenericResponse rsp = new GenericResponse();
         String emptyField = null;
 
-        if(CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
+        if(!userObj.has("email") || CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
             emptyField = "Email";
-        }else if(CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
+        }else if(!userObj.has("phone_number") || CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
             emptyField = "Phone Number";
-        }else if(CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
+        }else if(!userObj.has("name") || CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
             emptyField = "Name";
-        }else if(CommonMethods.parseNullString(userObj.getString("password")).isEmpty()){
+        }else if(!userObj.has("password") || CommonMethods.parseNullString(userObj.getString("password")).isEmpty()){
             emptyField = "Password";
-        }else if(CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
+        }else if(!userObj.has("profile_id") || CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
-        }else if(CommonMethods.parseNullInt(userObj.getInt("created_by"))==0){
+        }else if(!userObj.has("created_by") || CommonMethods.parseNullInt(userObj.getInt("created_by"))==0){
             emptyField = "Created by";
         }
 
@@ -67,7 +67,11 @@ public class UserController {
             rsp.setStatus(0);
             rsp.setMessage(emptyField+" is required");
         }else {
-            if(profileService.getProfileWithId(userObj.getInt("profile_id")).getString("role").equalsIgnoreCase("super_admin")){
+            JSONObject profileObj = profileService.getProfileWithId(userObj.getInt("profile_id"));
+            if(!profileService.isProfileValid(userObj.getInt("profile_id")) || profileObj.isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Profile id missing or invalid");
+            }else if(profileObj.getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");
             }else if(userService.findByEmail(userObj.getString("email"))==null) {
@@ -91,25 +95,29 @@ public class UserController {
         JSONObject userObj = new JSONObject(obj);
         GenericResponse rsp = new GenericResponse();
         String emptyField = null;
-        if(CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
+        if(!userObj.has("email") || CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
             emptyField = "Email";
-        }else if(CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
+        }else if(!userObj.has("phone_number") || CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
             emptyField = "Phone Number";
-        }else if(CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
+        }else if(!userObj.has("name") || CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
             emptyField = "Name";
         }else if(CommonMethods.parseNullInt(id)==0){
             emptyField = "User id";
-        }else if(CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
+        }else if(!userObj.has("profile_id") || CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
-        }else if(CommonMethods.parseNullInt(userObj.getInt("updated_by"))==0){
+        }else if(!userObj.has("updated_by") || CommonMethods.parseNullInt(userObj.getInt("updated_by"))==0){
             emptyField = "Updated by";
         }
 
-        if(CommonMethods.parseNullString(emptyField).isEmpty()){
+        if(!CommonMethods.parseNullString(emptyField).isEmpty()){
             rsp.setStatus(0);
             rsp.setMessage(emptyField+" is required");
         }else {
-            if(profileService.getProfileWithId(id).getString("role").equalsIgnoreCase("super_admin")){
+            JSONObject profileObj = profileService.getProfileWithId(userObj.getInt("profile_id"));
+            if(!profileService.isProfileValid(userObj.getInt("profile_id")) || profileObj.isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Profile id missing or invalid");
+            }else if(profileObj.getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");
             }else if(userService.updateUser(userObj,id)){

@@ -81,8 +81,11 @@ create table config(
 );
 
 insert into profiles (role) value ("super_admin"),("user");
-insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/cms/refresh_token"),("/api/cms/logout"),("/api/cms/updateUser");
+insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/cms/refresh_token");
+insert into urls (url) value ("/api/cms/logout"),("/api/cms/documents"),("/api/admin/templates"),("/api/cms/categories"),("/api/cms/updateUser"),
+("/api/admin/categories");
 insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'super_admin';
-insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'user' and u.url in ("/api/cms/refresh_token","/api/cms/logout","/api/cms/updateUser");
+insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'user' and u.url in
+("/api/cms/refresh_token","/api/cms/logout","/api/cms/updateUser","/api/cms/documents","/api/cms/categories","/api/cms/updateUser");
 
 insert into config (code,val) values ("admin_documents","/home/etn/uploads/admin/templates"),("user_documents","/home/etn/uploads/cms/documents");

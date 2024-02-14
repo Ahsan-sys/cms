@@ -32,11 +32,11 @@ public class CategoriesService {
             params.add(type);
 
             if(!CommonMethods.parseNullString(searchTxt).isEmpty()){
+                System.out.println(searchTxt.length());
                 query+=" and title like ?";
                 params.add("%" + searchTxt.trim() + "%");
             }
             query+= " order by id";
-
 
             List<JSONObject> list = jdbc.query(query,params.toArray(), new RowMapper<JSONObject>() {
                 @Override
@@ -85,8 +85,7 @@ public class CategoriesService {
 
     public boolean createCategory(String title, String type, String createdBy){
         try{
-            jdbc.update("insert ignore into categories (title, type, created_by) values (?,?,?)", title,type,createdBy);
-            return true;
+            return jdbc.update("insert ignore into categories (title, type, created_by) values (?,?,?)", title,type,createdBy)>0;
         }catch (Exception e){
             return false;
         }
