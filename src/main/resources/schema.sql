@@ -47,6 +47,33 @@ create table urls(
     url text
 );
 
+create table categories(
+    id int(11) primary key AUTO_INCREMENT not null,
+    uuid varchar(100) not null unique default uuid(),
+    title varchar(255) not null unique,
+    type enum("doc","tmp"),
+    created_dt timestamp not null default current_timestamp(),
+    updated_dt timestamp not null default current_timestamp() ON update current_timestamp(),
+    created_by int(11) default 0,
+    updated_by int(11),
+    UNIQUE KEY `title_owner` (`title`,`created_by`,`type`)
+);
+
+create table templates(
+    id int(11) primary key AUTO_INCREMENT not null,
+    uuid varchar(100) not null unique default uuid(),
+    category_id int(11) not null,
+    title varchar(255) not null,
+    description text,
+    version int(11) default 1,
+    expiry_date timestamp,
+    created_dt timestamp not null default current_timestamp(),
+    updated_dt timestamp not null default current_timestamp() ON update current_timestamp(),
+    created_by int(11) default 0,
+    updated_by int(11),
+    UNIQUE KEY `title_owner` (`title`,`created_by`,`category_id`)
+);
+
 create table config(
     code varchar(100) primary key,
     val varchar(255),
@@ -58,13 +85,4 @@ insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/c
 insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'super_admin';
 insert into profile_authorities (profile_id,url_id,request_methods) SELECT p.id, u.id,"*" FROM profiles p CROSS JOIN urls u WHERE p.role = 'user' and u.url in ("/api/cms/refresh_token","/api/cms/logout","/api/cms/updateUser");
 
-insert into config (code,val) values ("admin_documents","D:/work/cms/admin"),("user_documents","D:/work/cms/documents"),("max_file_size","2");
-
-create table template_documents(
-    id int(11) primary key AUTO_INCREMENT not null,
-    uuid varchar(100) not null unique default uuid(),
-    created_dt timestamp not null default current_timestamp(),
-    updated_dt timestamp not null default current_timestamp() ON update current_timestamp(),
-    created_by int(11) default 0,
-    updated_by int(11),
-);
+insert into config (code,val) values ("admin_documents","D:/work/cms/admin"),("user_documents","D:/work/cms/documents");

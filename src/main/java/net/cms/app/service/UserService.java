@@ -276,7 +276,7 @@ public class UserService{
             }
             query += " WHERE id = ?";
 
-            parameters.add(obj.getInt("id"));
+            parameters.add(id);
 
             int result = jdbc.update(query, parameters.toArray());
 
