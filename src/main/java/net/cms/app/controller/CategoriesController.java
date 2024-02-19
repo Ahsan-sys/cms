@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import net.cms.app.response.GenericResponse;
 import net.cms.app.service.CategoriesService;
+import net.cms.app.service.TemplatesService;
 import net.cms.app.utility.CommonMethods;
 import net.cms.app.utility.JwtUtil;
 import org.json.JSONArray;
@@ -13,7 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/cms/categories", "/api/admin/categories"})
+@RequestMapping({"/api/cms/documentCategories", "/api/admin/templateCategories"})
 @AllArgsConstructor
 public class CategoriesController {
 
@@ -21,17 +22,16 @@ public class CategoriesController {
     private final CategoriesService categoriesService;
 
     @Autowired
+    private final TemplatesService templatesService;
+
+    @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam String search){
-        //Need to make search optional
+    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String search){
         String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
         String userId = jwtUtil.extractUserId(accessToken);
 
-        String type="doc";
-        if(request.getServletPath().contains("admin")){
-            type="tmp";
-        }
+        String type= CommonMethods.getTemplateType(request.getServletPath());
 
         GenericResponse rsp = new GenericResponse();
         JSONArray rspArray = categoriesService.getCategories(Integer.parseInt(userId),type,search);
@@ -45,13 +45,16 @@ public class CategoriesController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<String> getCategoryApi(@PathVariable int id){
+    public ResponseEntity<String> getCategoryApi(HttpServletRequest request, @PathVariable int id){
+        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+        String userId = jwtUtil.extractUserId(accessToken);
+
         GenericResponse rsp = new GenericResponse();
         if(CommonMethods.parseNullInt(id)==0){
             rsp.setStatus(0);
             rsp.setMessage("Category id is missing");
         }else{
-            JSONObject rspObj = categoriesService.getCategory(id);
+            JSONObject rspObj = categoriesService.getCategory(id,userId);
             if(rspObj.isEmpty()){
                 rsp.setStatus(0);
                 rsp.setMessage("Error Fetching data");
@@ -72,10 +75,7 @@ public class CategoriesController {
             String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
             String userId = jwtUtil.extractUserId(accessToken);
 
-            String type="doc";
-            if(request.getServletPath().contains("admin")){
-                type="tmp";
-            }
+            String type= CommonMethods.getTemplateType(request.getServletPath());
 
             boolean isInserted = categoriesService.createCategory(title,type,userId);
             if(isInserted){
@@ -89,16 +89,31 @@ public class CategoriesController {
     }
 
     @DeleteMapping
-    public ResponseEntity<String> deleteCategoryApi(@RequestParam int id){
+    public ResponseEntity<String> deleteCategoryApi(HttpServletRequest request,@RequestParam String id){
+        GenericResponse rsp = new GenericResponse();
         if(CommonMethods.parseNullInt(id)==0){
-            return ResponseEntity.status(401).body("Category id is missing");
+            rsp.setMessage("Category id is missing");
+            rsp.setStatus(0);
         }else{
-            boolean isDeleted = categoriesService.deleteCategory(id);
-            if(isDeleted){
-                return ResponseEntity.status(200).body("Category deleted successfully");
+            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+            String userId = jwtUtil.extractUserId(accessToken);
+
+            String type= CommonMethods.getTemplateType(request.getServletPath());
+            JSONObject obj = new JSONObject();
+            obj.put("category_id",id);
+            if(!templatesService.getTemplates(Integer.parseInt(userId),obj,type).isEmpty()){
+                rsp.setMessage("Cannot delete category, it has templates inside");
+                rsp.setStatus(0);
             }else{
-                return ResponseEntity.status(200).body("Error deleting category");
+                boolean isDeleted = categoriesService.deleteCategory(id,userId);
+                if(isDeleted){
+                    rsp.setMessage("Category deleted successfully");
+                }else{
+                    rsp.setMessage("Error deleting category");
+                    rsp.setStatus(0);
+                }
             }
         }
+        return ResponseEntity.ok(rsp.rspToJson().toString());
     }
 }

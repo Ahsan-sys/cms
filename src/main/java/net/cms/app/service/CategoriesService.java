@@ -60,10 +60,10 @@ public class CategoriesService {
         }
     }
 
-    public JSONObject getCategory(int id){
+    public JSONObject getCategory(int id, String userId){
         try {
-            String query = "SELECT * FROM categories where id=? ";
-            return jdbc.queryForObject(query, new Object[]{id}, new RowMapper<JSONObject>() {
+            String query = "SELECT * FROM categories where id=? and created_by=? ";
+            return jdbc.queryForObject(query, new Object[]{id,userId}, new RowMapper<JSONObject>() {
                 @Override
                 public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
                     JSONObject obj = new JSONObject();
@@ -101,9 +101,9 @@ public class CategoriesService {
         }
     }
 
-    public boolean deleteCategory(int categoryId){
+    public boolean deleteCategory(String categoryId, String userId){
         try{
-            return jdbc.update("DELETE FROM categories WHERE id = ?", categoryId) > 0;
+            return jdbc.update("DELETE FROM categories WHERE id = ? and created_by=?", categoryId,userId) > 0;
         }catch (Exception e){
             e.printStackTrace();
             return false;

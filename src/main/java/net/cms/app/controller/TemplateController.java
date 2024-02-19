@@ -25,31 +25,39 @@ public class TemplateController {
     private final TemplatesService templatesService;
 
     @Autowired
+    private final CategoriesService categoriesService;
+
+    @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestBody String obj){
+    public ResponseEntity<String> getTemplatesApi(HttpServletRequest request, @RequestBody String obj){
         GenericResponse rsp = new GenericResponse();
         try {
             JSONObject reqData = new JSONObject(obj);
 
-            if(reqData.isEmpty() || !reqData.has("categoryId") || CommonMethods.parseNullString(reqData.optString("categoryId")).isEmpty()){
+            if(reqData.isEmpty()){
                 rsp.setStatus(0);
                 rsp.setMessage("Required data is missing");
-            }
-            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-            String userId = jwtUtil.extractUserId(accessToken);
-
-            String type="doc";
-            if(request.getServletPath().contains("admin")){
-                type="tmp";
-            }
-
-            JSONArray rspArray = templatesService.getTemplates(Integer.parseInt(userId),reqData.optString("search"),reqData.getString("categoryId"),type);
-            if(rspArray.isEmpty()){
+            }else if(!reqData.has("category_id") || CommonMethods.parseNullString(reqData.getString("category_id")).isEmpty()){
                 rsp.setStatus(0);
-                rsp.setMessage("Error Fetching data");
+                rsp.setMessage("Category id is missing");
             }else{
-                rsp.setDataArray(rspArray);
+                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+
+                String type= CommonMethods.getTemplateType(request.getServletPath());
+                if(categoriesService.getCategory(Integer.parseInt(reqData.getString("category_id." +
+                        "")),userId).isEmpty()){
+                    rsp.setStatus(0);
+                    rsp.setMessage("Invalid category id");
+                }else{
+                    JSONArray rspArray = templatesService.getTemplates(Integer.parseInt(userId),reqData,type);
+                    if(rspArray.isEmpty()){
+                        rsp.setStatus(0);
+                        rsp.setMessage("Error Fetching data");
+                    }else{
+                        rsp.setDataArray(rspArray);
+                    }
+                }
             }
         }catch (Exception e){
             System.out.println(Arrays.toString(e.getStackTrace()));
@@ -64,13 +72,9 @@ public class TemplateController {
         GenericResponse rsp = new GenericResponse();
 
         try{
-            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-            String userId = jwtUtil.extractUserId(accessToken);
+            String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
-            String type="doc";
-            if(request.getServletPath().contains("admin")){
-                type="tmp";
-            }
+            String type= CommonMethods.getTemplateType(request.getServletPath());
 
             JSONObject rspObj = templatesService.getTemplate(Integer.parseInt(userId),id,type);
             if(rspObj.isEmpty()){
@@ -87,108 +91,143 @@ public class TemplateController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createTemplateApi(HttpServletRequest request, @RequestParam("file") MultipartFile file,@RequestBody String obj){
+    public ResponseEntity<String> createTemplateApi(HttpServletRequest request, @RequestParam("file") MultipartFile file,@RequestParam("data") String obj){
+        GenericResponse rsp = new GenericResponse();
         try{
             JSONObject templateObj = new JSONObject(obj);
 
             if(file.isEmpty()){
-                return ResponseEntity.status(401).body("File should not be empty");
+                rsp.setStatus(0);
+                rsp.setMessage("File should not be empty");
             }else if(templateObj.isEmpty()){
-                return ResponseEntity.status(401).body("Template data missing");
-            }else if(!templateObj.has("category_id")){
-                return ResponseEntity.status(401).body("Category id is missing");
-            }else if(!templateObj.has("title")){
-                return ResponseEntity.status(401).body("Title is missing");
+                rsp.setStatus(0);
+                rsp.setMessage("Template data missing");
+            }else if(!templateObj.has("category_id") || CommonMethods.parseNullString(templateObj.getString("category_id")).isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Category id is missing");
+            }else if(!templateObj.has("title") || CommonMethods.parseNullString(templateObj.getString("title")).isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Title is missing");
             }else if(!CommonMethods.isSupportedFileType(file.getContentType())){
-                return ResponseEntity.status(401).body("File type is invalid");
+                rsp.setStatus(0);
+                rsp.setMessage("File type is invalid");
             }else if(!CommonMethods.isValidFileSize(file.getSize())){
-                return ResponseEntity.status(401).body("File is too large");
+                rsp.setStatus(0);
+                rsp.setMessage("File is too large");
             }else{
-                String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-                String userId = jwtUtil.extractUserId(accessToken);
+                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
-                String type="doc";
+                String type= CommonMethods.getTemplateType(request.getServletPath());
+
                 if(request.getServletPath().contains("admin")){
                     if(templateObj.has("expiry_date")){
                         templateObj.remove("expiry_date");
                     }
-                    type="tmp";
                 }
 
-                boolean isInserted = templatesService.createTemplate(file,templateObj,type, Integer.parseInt(userId));
-                if(isInserted){
-                    return ResponseEntity.status(200).body("Template created successfully");
+                if(categoriesService.getCategory(Integer.parseInt(templateObj.getString("category_id")),userId).isEmpty()){
+                    rsp.setStatus(0);
+                    rsp.setMessage("Invalid category id passed");
+                }else if(!templatesService.isTemplateUnique(Integer.parseInt(userId),templateObj.getString("category_id"),templateObj.getString("title"))){
+                    rsp.setStatus(0);
+                    rsp.setMessage("Template already exists with this title");
                 }else{
-                    return ResponseEntity.status(200).body("Error creating template");
+                    boolean isInserted = templatesService.createTemplate(file,templateObj,type, Integer.parseInt(userId));
+                    if(isInserted){
+                        rsp.setMessage("Template created successfully");
+                    }else{
+                        rsp.setStatus(0);
+                        rsp.setMessage("Error uploading template");
+                    }
                 }
             }
         }catch (Exception e){
-            return ResponseEntity.status(403).body(e.getMessage());
+            rsp.setStatus(0);
+            rsp.setMessage(e.getMessage());
         }
+        return ResponseEntity.ok(rsp.rspToJson().toString());
     }
 
     @PutMapping
-    public ResponseEntity<String> updateTemplateApi(HttpServletRequest request, @RequestParam("file") MultipartFile file,@RequestBody String obj){
+    public ResponseEntity<String> updateTemplateApi(HttpServletRequest request, @RequestParam("file") MultipartFile file,@RequestParam("data") String obj){
+        GenericResponse rsp = new GenericResponse();
         try{
             JSONObject templateObj = new JSONObject(obj);
-
             if(file.isEmpty()){
-                return ResponseEntity.status(401).body("File should not be empty");
-            }else if(templateObj.isEmpty()){
-                return ResponseEntity.status(401).body("Template data missing");
-            }else if(!templateObj.has("category_id")){
-                return ResponseEntity.status(401).body("Category id is missing");
-            }else if(!templateObj.has("title")){
-                return ResponseEntity.status(401).body("Title is missing");
+                rsp.setMessage("File should not be empty");
+                rsp.setStatus(0);
             }else if(!CommonMethods.isSupportedFileType(file.getContentType())){
-                return ResponseEntity.status(401).body("File type is invalid");
+                rsp.setMessage("File type is invalid");
+                rsp.setStatus(0);
             }else if(!CommonMethods.isValidFileSize(file.getSize())){
-                return ResponseEntity.status(401).body("File is too large");
-            }else if(!templateObj.has("template_id")){
-                return ResponseEntity.status(401).body("Template id is missing");
+                rsp.setMessage("File is too large");
+                rsp.setStatus(0);
+            }else if(!templateObj.has("template_id") || CommonMethods.parseNullString(templateObj.getString("template_id")).isEmpty()){
+                rsp.setMessage("Template id is missing");
+                rsp.setStatus(0);
             }else{
-                String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-                String userId = jwtUtil.extractUserId(accessToken);
+                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+                String type= CommonMethods.getTemplateType(request.getServletPath());
 
-                String type="doc";
-                if(request.getServletPath().contains("admin")){
-                    if(templateObj.has("expiry_date")){
-                        templateObj.remove("expiry_date");
-                    }
-                    type="tmp";
-                }
-
-                boolean isInserted = templatesService.createTemplate(file,templateObj,type, Integer.parseInt(userId));
-                if(isInserted){
-                    return ResponseEntity.status(200).body("Template created successfully");
+                JSONObject templateObject = templatesService.getTemplate(Integer.parseInt(userId), Integer.parseInt(templateObj.getString("template_id")),type);
+                if(templateObject.isEmpty()){
+                    rsp.setMessage("Invalid template id");
+                    rsp.setStatus(0);
                 }else{
-                    return ResponseEntity.status(200).body("Error creating template");
+                    if(request.getServletPath().contains("admin")){
+                        if(templateObj.has("expiry_date")){
+                            templateObj.remove("expiry_date");
+                        }
+                    }
+
+                    templateObj.put("category_id",templateObject.getString("category_id"));
+                    templateObj.put("title",templateObject.getString("title"));
+                    templateObj.put("actual_file_name",templateObject.getString("actual_file_name"));
+                    boolean isUpdated = templatesService.updateTemplate(file,templateObj,type, Integer.parseInt(userId));
+                    if(isUpdated){
+                        rsp.setMessage("Template updated successfully");
+                    }else{
+                        rsp.setMessage("Error updating template");
+                        rsp.setStatus(0);
+                    }
                 }
             }
         }catch (Exception e){
-            return ResponseEntity.status(403).body(e.getMessage());
+            rsp.setMessage(e.getMessage());
+            rsp.setStatus(0);
         }
+        return ResponseEntity.ok(rsp.rspToJson().toString());
     }
 
     @DeleteMapping
-    public ResponseEntity<String> deleteCategoryApi(HttpServletRequest request,@RequestParam int id){
+    public ResponseEntity<String> deleteTemplateApi(HttpServletRequest request,@RequestParam String id){
+        GenericResponse rsp = new GenericResponse();
         try{
-            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-            String userId = jwtUtil.extractUserId(accessToken);
+            if(CommonMethods.parseNullString(id).isEmpty()){
+                rsp.setMessage("Temaplte id missing");
+                rsp.setStatus(0);
+            }else {
+                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
-            String type="doc";
-            if(request.getServletPath().contains("admin")){
-                type="tmp";
-            }
-            boolean isDeleted = templatesService.deleteTemplate(id,type, Integer.parseInt(userId));
-            if(isDeleted){
-                return ResponseEntity.status(200).body("Template deleted successfully");
-            }else{
-                return ResponseEntity.status(200).body("Error deleting template");
+                String type = CommonMethods.getTemplateType(request.getServletPath());
+                JSONObject templateObj = templatesService.getTemplate(Integer.parseInt(userId), Integer.parseInt(id), type);
+                if (templateObj.isEmpty()) {
+                    rsp.setMessage("Invalid template id");
+                    rsp.setStatus(0);
+                } else {
+                    if (templatesService.deleteTemplate(Integer.parseInt(id), type, Integer.parseInt(userId), templateObj)) {
+                        rsp.setMessage("Template deleted successfully");
+                    } else {
+                        rsp.setMessage("Error deleting template");
+                        rsp.setStatus(0);
+                    }
+                }
             }
         }catch(Exception e){
             e.printStackTrace();
-            return ResponseEntity.status(200).body(e.getMessage());
+            rsp.setMessage(e.getMessage());
+            rsp.setStatus(0);
         }
+        return  ResponseEntity.ok(rsp.rspToJson().toString());
     }
 }

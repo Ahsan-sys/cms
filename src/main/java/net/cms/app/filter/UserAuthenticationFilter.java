@@ -69,11 +69,15 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
             JSONObject userProfile = userService.findByIdOrEmail(user.getUserId(),null);
             if(userProfile.has("data")){
+                JSONObject userObj = userProfile.getJSONObject("data");
+
                 rsp.put("message","Signed In Successfully!");
                 rsp.put("status",1);
                 rsp.put("Access-Token",accessToken);
                 rsp.put("Refresh-Token",refreshToken);
-                userService.setToken(userProfile.getJSONObject("data").getInt("id"),accessToken,refreshToken);
+                rsp.put("user",userObj);
+                
+                userService.setToken(userObj.getInt("id"),accessToken,refreshToken);
             }else{
                 rsp.put("message",userProfile.getString("message"));
                 rsp.put("status",0);

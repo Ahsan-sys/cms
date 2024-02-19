@@ -58,8 +58,15 @@ public class CommonMethods {
                 "application/vnd.openxmlformats-officedocument.presentationml.presentation", // PPTX
                 "text/plain", // TXT
                 "application/pdf", // PDF
-                "application/vnd.ms-excel" // XLS
+                "application/vnd.ms-excel", // XLS
+                "image/jpeg", // JPEG
+                "image/png", // PNG
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
+                "text/csv", // CSV
+                "application/vnd.ms-powerpoint", // PPT
+                "application/xml", // XML
         };
+
 
         for (String supportedType : supportedTypes) {
             if (contentType.equals(supportedType)) {
@@ -71,5 +78,13 @@ public class CommonMethods {
 
     public static boolean isValidFileSize(long size) {
         return size <= 10 * 1024 * 1024; // 5 MB
+    }
+
+    public static String getTemplateType(String request){
+        String type = "doc";
+        if(request.contains("admin")){
+            type="tmp";
+        }
+        return type;
     }
 }

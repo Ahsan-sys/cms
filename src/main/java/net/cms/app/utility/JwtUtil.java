@@ -69,19 +69,31 @@ public class JwtUtil {
     public boolean isTokenExpired(String token){ return extractExpiration(token).before(new Date()); }
 
     public String generateAccessToken(String userId,String email,String role){
+        return generateAccessToken(userId,email,role,true);
+    }
+    public String generateAccessToken(String userId,String email,String role,boolean canTokenExpire){
         Map<String,Object> claims = new HashMap<>();
         claims.put("userId",userId);
         claims.put("role",role);
         claims.put("email",email);
         SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
 
-        return Jwts.builder()
-                .setIssuer(APP_NAME)
-                .setClaims(claims)
-                .setSubject(userId)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME)))
-                .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
+        if(canTokenExpire){
+            return Jwts.builder()
+                    .setIssuer(APP_NAME)
+                    .setClaims(claims)
+                    .setSubject(userId)
+                    .setIssuedAt(new Date(System.currentTimeMillis()))
+                    .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME)))
+                    .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
+        }else{
+            return Jwts.builder()
+                    .setIssuer(APP_NAME)
+                    .setClaims(claims)
+                    .setSubject(userId)
+                    .setIssuedAt(new Date(System.currentTimeMillis()))
+                    .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
+        }
     }
 
     public String generateRefreshToken(String userId){

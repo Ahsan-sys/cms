@@ -69,14 +69,14 @@ public class UserService{
         JSONObject user= new JSONObject();
 
         String query = "select u.*,p.role from users u left join profiles p on p.id=u.profile_id where ";
-        if(userId !=null && !userId.isEmpty()){
+        if(!CommonMethods.parseNullString(userId).isEmpty()){
             query+=" u.id=?";
         }else{
             query+=" u.email=?";
         }
         jdbc.execute(query,(PreparedStatementCallback<Void>) ps->{
             try{
-                if(userId !=null && !userId.isEmpty()){
+                if(!CommonMethods.parseNullString(userId).isEmpty()){
                     ps.setString(1,userId);
                 }else{
                     ps.setString(1,email);
@@ -155,7 +155,7 @@ public class UserService{
         }
     }
 
-    public void deleteUserSession(String userId){jdbc.update("delete from user_sessions where user_id=?", userId);}
+    public boolean deleteUserSession(String userId){return jdbc.update("delete from user_sessions where user_id=?", userId)>0;}
 
     public Boolean validateUserToken(String userId,String token, String tokenType){
         String query = "select count(*) as count from users u join user_sessions us on us.user_id=u.id where u.id=? and us."+tokenType+"=?";
@@ -200,13 +200,16 @@ public class UserService{
         } );
     }
 
-    public JSONArray getAllUsers(){
+    public JSONArray getAllUsers(String userId){
         try{
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users order by id");
 
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> row : rows) {
                 JSONObject jsonObject = new JSONObject(row);
+                if(jsonObject.getInt("id") != Integer.parseInt(userId)){
+                    jsonObject.remove("password");
+                }
                 jsonArray.put(jsonObject);
             }
             return jsonArray;
@@ -216,13 +219,17 @@ public class UserService{
         }
     }
 
-    public JSONObject getUserWithId(int id){
+    public JSONObject getUserWithId(int id,String userId){
         try{
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users WHERE id = ?", id);
 
             if (!rows.isEmpty()) {
                 Map<String, Object> row = rows.get(0);
-                return new JSONObject(row);
+                JSONObject obj = new JSONObject(row);
+                if(obj.getInt("id") != Integer.parseInt(userId)){
+                    obj.remove("password");
+                }
+                return obj;
             } else {
                 return null;
             }
@@ -234,6 +241,11 @@ public class UserService{
 
     public boolean createUser(JSONObject obj){
         try {
+            String phoneNumber = "";
+            if(obj.has("phone_number") || !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
+                phoneNumber = obj.getString("phoneNumber");
+            }
+
             int createdBy = 0;
             if(obj.has("created_by")){
                 createdBy = CommonMethods.parseNullInt(obj.getInt("created_by"));
@@ -249,7 +261,7 @@ public class UserService{
 
             int rows = jdbc.update("insert into users (name,password,email,phone_number,profile_id,created_by) values (?,?,?,?,?,?)",
                     obj.getString("name"), passwordEncoder.encode(obj.getString("password")), obj.getString("email"),
-                    obj.getString("phone_number"), userProfilId,createdBy);
+                    phoneNumber, userProfilId,createdBy);
             return rows > 0;
         }catch (Exception e){
             System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
@@ -259,12 +271,17 @@ public class UserService{
 
     public boolean updateUser(JSONObject obj,int id){
         try{
+            String phoneNumber = "";
+            if(obj.has("phone_number") || !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
+                phoneNumber = obj.getString("phoneNumber");
+            }
+
             String query = "UPDATE users SET name = ?, email = ?, phone_number = ?";
 
             List<Object> parameters = new ArrayList<>();
             parameters.add(obj.getString("name"));
             parameters.add(obj.getString("email"));
-            parameters.add(obj.getString("phone_number"));
+            parameters.add(phoneNumber);
 
             if (obj.has("profile_id")) {
                 query += ", profile_id = ?";

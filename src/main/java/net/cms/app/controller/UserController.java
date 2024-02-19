@@ -1,10 +1,12 @@
 package net.cms.app.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import net.cms.app.response.GenericResponse;
 import net.cms.app.service.ProfileService;
 import net.cms.app.service.UserService;
 import net.cms.app.utility.CommonMethods;
+import net.cms.app.utility.JwtUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,18 +24,27 @@ public class UserController {
     @Autowired
     private final ProfileService profileService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @GetMapping
-    public ResponseEntity<String> getAllUsersApi(){
+    public ResponseEntity<String> getAllUsersApi(HttpServletRequest request){
+        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+        String userId = jwtUtil.extractUserId(accessToken);
+
         GenericResponse rsp = new GenericResponse();
-        JSONArray rspArray = userService.getAllUsers();
+        JSONArray rspArray = userService.getAllUsers(userId);
         rsp.setDataArray(rspArray);
         return ResponseEntity.ok(rsp.rspToJson().toString());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<String> getUserApi(@PathVariable int id){
+    public ResponseEntity<String> getUserApi(HttpServletRequest request, @PathVariable int id){
+        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+        String userId = jwtUtil.extractUserId(accessToken);
+
         GenericResponse rsp = new GenericResponse();
-        JSONObject obj = userService.getUserWithId(id);
+        JSONObject obj = userService.getUserWithId(id,userId);
         if(obj==null){
             rsp.setStatus(0);
             rsp.setMessage("Error getting data for user");
@@ -51,8 +62,6 @@ public class UserController {
 
         if(!userObj.has("email") || CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
             emptyField = "Email";
-        }else if(!userObj.has("phone_number") || CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
-            emptyField = "Phone Number";
         }else if(!userObj.has("name") || CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
             emptyField = "Name";
         }else if(!userObj.has("password") || CommonMethods.parseNullString(userObj.getString("password")).isEmpty()){
@@ -68,9 +77,9 @@ public class UserController {
             rsp.setMessage(emptyField+" is required");
         }else {
             JSONObject profileObj = profileService.getProfileWithId(userObj.getInt("profile_id"));
-            if(!profileService.isProfileValid(userObj.getInt("profile_id")) || profileObj.isEmpty()){
+            if(profileObj==null || profileObj.isEmpty()){
                 rsp.setStatus(0);
-                rsp.setMessage("Profile id missing or invalid");
+                rsp.setMessage("Profile id is invalid");
             }else if(profileObj.getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");
@@ -97,8 +106,6 @@ public class UserController {
         String emptyField = null;
         if(!userObj.has("email") || CommonMethods.parseNullString(userObj.getString("email")).isEmpty()){
             emptyField = "Email";
-        }else if(!userObj.has("phone_number") || CommonMethods.parseNullString(userObj.getString("phone_number")).isEmpty()){
-            emptyField = "Phone Number";
         }else if(!userObj.has("name") || CommonMethods.parseNullString(userObj.getString("name")).isEmpty()){
             emptyField = "Name";
         }else if(CommonMethods.parseNullInt(id)==0){

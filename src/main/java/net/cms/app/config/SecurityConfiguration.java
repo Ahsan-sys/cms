@@ -39,7 +39,7 @@ public class SecurityConfiguration {
 
         http.csrf(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(request -> request
-                .requestMatchers("/api/signup","/api/pswdBcrypt").permitAll()
+                .requestMatchers("/api/signup","/api/app/signup","/api/pswdBcrypt").permitAll()
                 .requestMatchers("/api/admin/**","/api/cms/**").permitAll()
                 .anyRequest().authenticated()
         )

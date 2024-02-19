@@ -57,24 +57,26 @@ public class ProfileService {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean createRole(JSONObject profileObj){
-        String role = profileObj.getString("role");
+        String role = profileObj.getString("role").replaceAll(" ","_");
         String createdBy = profileObj.getString("created_by");
+        String name = profileObj.getString("name");
         JSONArray authorities = profileObj.getJSONArray("authorities");
 
         try{
-            final String sql = "insert into profiles (role,created_by) values (?,?)";
+            final String sql = "insert into profiles (role,name,created_by) values (?,?,?)";
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbc.update(
                 connection -> {
                     PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
                     ps.setString(1, role);
-                    ps.setString(2, createdBy);
+                    ps.setString(2, name);
+                    ps.setString(3, createdBy);
                     return ps;
                 },
             keyHolder);
 
             int profileId = Objects.requireNonNull(keyHolder.getKey()).intValue();
-            final String sql2 = "INSERT ignore INTO profile_authorities (profile_id, url_id, request_methods) VALUES (?, ?, ?)";
+            String sql2 = "INSERT ignore INTO profile_authorities (profile_id, url_id, request_methods) VALUES (?, ?, ?)";
 
             for (int i = 0; i < authorities.length(); i++) {
                 JSONObject authority = authorities.getJSONObject(i);
@@ -83,6 +85,8 @@ public class ProfileService {
 
                 jdbc.update(sql2, profileId, urlId, reqMeth);
             }
+            sql2 = "INSERT ignore INTO profile_authorities (profile_id, url_id, request_methods) select ?,id,'*' from urls where url in ('/api/cms/refresh_token','/api/cms/logout','/api/cms/updateUser','/api/cms/documents','/api/cms/documentCategories','/api/cms/updateUser')";
+            jdbc.update(sql2, profileId);
             return true;
         }catch (Exception e){
             System.out.println(Arrays.toString(e.getStackTrace()));
@@ -91,15 +95,15 @@ public class ProfileService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public boolean updateRole(JSONObject profileObj,int id){
-        String role = profileObj.getString("role");
+    public boolean updateRole(JSONObject profileObj){
         String updatedBy = profileObj.getString("updated_by");
         JSONArray authorities = profileObj.getJSONArray("authorities");
+        String id = profileObj.getString("profile_id");
 
         try{
-            int rows = jdbc.update("update profiles set role =?,updated_by=? where id=?",role,updatedBy,id);
+            int rows = jdbc.update("update profiles set updated_by=? where id=?",updatedBy,id);
             if(rows > 0){
-                deleteProfileAuthorities(id);
+                deleteProfileAuthorities(Integer.parseInt(id));
                 final String sql2 = "INSERT INTO profile_authorities (profile_id, url_id, request_methods) VALUES (?, ?, ?)";
 
                 for (int i = 0; i < authorities.length(); i++) {
@@ -173,5 +177,26 @@ public class ProfileService {
             System.out.println(e.getMessage() + " || Trace: "+ Arrays.toString(e.getStackTrace()));
             return false;
         }
+    }
+
+    public boolean isRoleAndNameExist(String role, String name){
+        String query = "select count(*) as count from profiles where role =? or name =? ";
+
+        return Boolean.TRUE.equals(jdbc.execute(query, (PreparedStatementCallback<Boolean>) ps -> {
+            try {
+                ps.setString(1, role);
+                ps.setString(2, name);
+
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    return rs.getInt("count") <= 0;
+                } else {
+                    return true;
+                }
+            } catch (Exception e) {
+                System.out.println(Arrays.toString(e.getStackTrace()));
+                return true;
+            }
+        }));
     }
 }
