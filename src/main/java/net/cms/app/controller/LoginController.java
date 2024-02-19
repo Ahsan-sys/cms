@@ -52,7 +52,9 @@ public class LoginController {
                     if (userService.createUser(userObj)) {
                         if(requestPath.contains("app")){
                             JSONObject newCreatedUser = userService.findByIdOrEmail(null,userObj.getString("email")).getJSONObject("data");
-                            String accessToken = jwtUtil.generateAccessToken(String.valueOf(newCreatedUser.getInt("id")),newCreatedUser.getString("email"),newCreatedUser.getString("role"),false);
+                            int userId = newCreatedUser.getInt("id");
+                            String accessToken = jwtUtil.generateAccessToken(String.valueOf(userId),newCreatedUser.getString("email"),newCreatedUser.getString("role"),false);
+                            userService.setToken(userId,accessToken,null);
 
                             rsp.put("Access-Token",accessToken);
                             rsp.put("user",newCreatedUser);

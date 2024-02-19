@@ -109,15 +109,24 @@ public class UserService{
 
     public void setToken(int userId,String accessToken,String refreshToken){
         deleteUserSession(String.valueOf(userId));
-        String query = "insert into user_sessions (user_id,access_token,refresh_token) values (?,?,?)";
-        jdbc.execute(query,(PreparedStatementCallback<Void>) ps->{
+        String query = "insert into user_sessions (user_id,access_token";
+        String queryValues ="values (?,?";
+
+        if(!CommonMethods.parseNullString(refreshToken).isEmpty()){
+            query += ",refresh_token";
+            queryValues += ",?";
+        }
+        String sql = query+") "+queryValues+")";
+        jdbc.execute(sql,(PreparedStatementCallback<Void>) ps->{
              try{
                  ps.setInt(1,userId);
                  ps.setString(2,accessToken);
-                 ps.setString(3,refreshToken);
+                 if(!CommonMethods.parseNullString(refreshToken).isEmpty()) {
+                     ps.setString(3, refreshToken);
+                 }
                  ps.executeUpdate();
              }catch (Exception e){
-                 System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                 e.printStackTrace();
              }
              return null;
         });
