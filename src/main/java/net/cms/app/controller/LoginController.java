@@ -19,7 +19,7 @@ public class LoginController {
     @Autowired
     private final UserService userService;
 
-    @PostMapping({"/signup","/app/singup"})
+    @PostMapping({"/signup","/app/signup"})
     public ResponseEntity<String> signupApi(HttpServletRequest request,@RequestBody String obj){
         JSONObject userObj = new JSONObject(obj);
         JSONObject rsp = new JSONObject();

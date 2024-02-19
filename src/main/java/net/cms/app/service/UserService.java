@@ -59,7 +59,6 @@ public class UserService{
         if(user.getEmail() != null){
             return user;
         }else{
-            System.out.println("User '"+email+"' Not Found");
             return null;
         }
     }
@@ -242,8 +241,8 @@ public class UserService{
     public boolean createUser(JSONObject obj){
         try {
             String phoneNumber = "";
-            if(obj.has("phone_number") || !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
-                phoneNumber = obj.getString("phoneNumber");
+            if(obj.has("phone_number") && !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
+                phoneNumber = obj.getString("phone_number");
             }
 
             int createdBy = 0;
@@ -264,7 +263,7 @@ public class UserService{
                     phoneNumber, userProfilId,createdBy);
             return rows > 0;
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            e.printStackTrace();
             return false;
         }
     }
@@ -272,7 +271,7 @@ public class UserService{
     public boolean updateUser(JSONObject obj,int id){
         try{
             String phoneNumber = "";
-            if(obj.has("phone_number") || !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
+            if(obj.has("phone_number") && !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
                 phoneNumber = obj.getString("phoneNumber");
             }
 
