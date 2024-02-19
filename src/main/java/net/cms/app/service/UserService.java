@@ -67,7 +67,7 @@ public class UserService{
         GenericResponse rsp = new GenericResponse();
         JSONObject user= new JSONObject();
 
-        String query = "select u.*,p.role from users u left join profiles p on p.id=u.profile_id where ";
+        String query = "select u.*,p.role,p.id as profile_id from users u left join profiles p on p.id=u.profile_id where ";
         if(!CommonMethods.parseNullString(userId).isEmpty()){
             query+=" u.id=?";
         }else{
@@ -88,6 +88,7 @@ public class UserService{
                     user.put("email",rs.getString("email"));
                     user.put("name",rs.getString("name"));
                     user.put("role",rs.getString("role"));
+                    user.put("profile_id",rs.getString("profile_id"));
                     user.put("password",rs.getString("password"));
                     user.put("phoneNumber",rs.getString("phone_number"));
                     user.put("isDeleted",rs.getBoolean("is_deleted"));

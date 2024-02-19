@@ -50,8 +50,24 @@ public class ProfileService {
                 return null;
             }
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            e.printStackTrace();
             return null;
+        }
+    }
+
+    public JSONArray getAllAuhtorizedUrls(String roleId){
+        try{
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT pa.profile_id,p.role,pa.url_id,u.url FROM profile_authorities pa LEFT JOIN urls u ON u.id = pa.url_id " +
+                " LEFT JOIN profiles p on pa.profile_id=p.id WHERE p.id=?",roleId);
+
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> row : rows) {
+                JSONObject jsonObject = new JSONObject(row);
+                jsonArray.put(jsonObject);
+            }
+            return jsonArray;
+        }catch (Exception e){
+            return new JSONArray();
         }
     }
 
@@ -89,7 +105,7 @@ public class ProfileService {
             jdbc.update(sql2, profileId);
             return true;
         }catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
             return false;
         }
     }
