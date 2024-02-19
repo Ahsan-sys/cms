@@ -43,15 +43,14 @@ public class ProfileController {
         }else{
             rsp.setData(obj);
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
-
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
-    @GetMapping
+    @GetMapping("/urls")
     public ResponseEntity<String> getProfileAuthorizedUrls(@RequestParam String roleId){
         GenericResponse rsp = new GenericResponse();
         rsp.setDataArray(profileService.getAllAuhtorizedUrls(roleId));
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
 
     }
     @PostMapping
@@ -103,7 +102,7 @@ public class ProfileController {
                 }
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PutMapping
@@ -136,7 +135,7 @@ public class ProfileController {
                 }
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @DeleteMapping
@@ -163,6 +162,6 @@ public class ProfileController {
                 rsp.setMessage("Users have this profile assigned. Can not delete it.");
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 }

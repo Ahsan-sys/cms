@@ -62,7 +62,7 @@ public class TemplateController {
             rsp.setStatus(0);
             rsp.setMessage(e.getMessage());
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @GetMapping("/{id}")
@@ -85,7 +85,7 @@ public class TemplateController {
             rsp.setStatus(0);
             rsp.setMessage(e.getMessage());
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PostMapping
@@ -143,7 +143,7 @@ public class TemplateController {
             rsp.setStatus(0);
             rsp.setMessage(e.getMessage());
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PutMapping
@@ -194,7 +194,7 @@ public class TemplateController {
             rsp.setMessage(e.getMessage());
             rsp.setStatus(0);
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @DeleteMapping
@@ -226,6 +226,6 @@ public class TemplateController {
             rsp.setMessage(e.getMessage());
             rsp.setStatus(0);
         }
-        return  ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 }

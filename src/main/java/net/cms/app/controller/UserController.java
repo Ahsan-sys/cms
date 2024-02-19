@@ -35,7 +35,7 @@ public class UserController {
         GenericResponse rsp = new GenericResponse();
         JSONArray rspArray = userService.getAllUsers(userId);
         rsp.setDataArray(rspArray);
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @GetMapping("/{id}")
@@ -51,7 +51,7 @@ public class UserController {
         }else{
             rsp.setData(obj);
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PostMapping
@@ -85,6 +85,7 @@ public class UserController {
                 rsp.setMessage("Super admin profile can not be assigned");
             }else if(userService.findByEmail(userObj.getString("email"))==null) {
                 if (userService.createUser(userObj)) {
+                    rsp.setData(userService.findByIdOrEmail(null,userObj.getString("email")).getJSONObject("data"));
                     rsp.setStatus(1);
                     rsp.setMessage("User created successfully");
                 } else {
@@ -128,6 +129,7 @@ public class UserController {
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");
             }else if(userService.updateUser(userObj,id)){
+                rsp.setData(userService.findByIdOrEmail(String.valueOf(id),null).getJSONObject("data"));
                 rsp.setStatus(1);
                 rsp.setMessage("User updated successfully");
             }else{
@@ -146,12 +148,18 @@ public class UserController {
             rsp.setStatus(0);
             rsp.setMessage("User id is missing");
         }else{
-            if(userService.deleteUser(id)){
-                rsp.setStatus(1);
-                rsp.setMessage("User deleted successfully");
-            }else{
+
+            if(userService.findByIdOrEmail(id,null).getJSONObject("data").getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
-                rsp.setMessage("Error deleting user");
+                rsp.setMessage("Super admin user can not be deleted");
+            }else{
+                if(userService.deleteUser(id)){
+                    rsp.setStatus(1);
+                    rsp.setMessage("User deleted successfully");
+                }else{
+                    rsp.setStatus(0);
+                    rsp.setMessage("Error deleting user");
+                }
             }
         }
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());

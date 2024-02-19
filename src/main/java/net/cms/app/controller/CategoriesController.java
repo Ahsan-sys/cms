@@ -41,7 +41,7 @@ public class CategoriesController {
         }else{
             rsp.setDataArray(rspArray);
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @GetMapping("/{id}")
@@ -62,7 +62,7 @@ public class CategoriesController {
                 rsp.setData(rspObj);
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PostMapping
@@ -85,7 +85,7 @@ public class CategoriesController {
                 rsp.setMessage("Error creating category");
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @DeleteMapping
@@ -114,6 +114,6 @@ public class CategoriesController {
                 }
             }
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 }

@@ -26,7 +26,11 @@ public class UserService{
     private JdbcTemplate jdbc;
 
     @Autowired
+    private ProfileService profileService;
+
+    @Autowired
     JwtUtil jwtUtil;
+
 
     private final PasswordEncoder passwordEncoder;
 
@@ -89,10 +93,13 @@ public class UserService{
                     user.put("name",rs.getString("name"));
                     user.put("role",rs.getString("role"));
                     user.put("profile_id",rs.getString("profile_id"));
-                    user.put("password",rs.getString("password"));
+                    if(!CommonMethods.parseNullString(userId).isEmpty() && userId.equals(String.valueOf(rs.getInt("id")))){
+                        user.put("password",rs.getString("password"));
+                    }
                     user.put("phoneNumber",rs.getString("phone_number"));
                     user.put("isDeleted",rs.getBoolean("is_deleted"));
                     user.put("isActive",rs.getBoolean("is_active"));
+                    user.put("urls",profileService.getAllAuhtorizedUrls(rs.getString("profile_id")));
                     rsp.setData(user);
                 }else {
                     rsp.setMessage(ResponseMessage.USER_NOT_FOUND_ERROR);
@@ -282,7 +289,7 @@ public class UserService{
         try{
             String phoneNumber = "";
             if(obj.has("phone_number") && !CommonMethods.parseNullString(obj.getString("phone_number")).isEmpty()){
-                phoneNumber = obj.getString("phoneNumber");
+                phoneNumber = obj.getString("phone_number");
             }
 
             String query = "UPDATE users SET name = ?, email = ?, phone_number = ?";
@@ -308,7 +315,7 @@ public class UserService{
 
             return result>0;
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            e.printStackTrace();
             return false;
         }
     }

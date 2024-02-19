@@ -19,6 +19,9 @@ public class LoginController {
     @Autowired
     private final UserService userService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping({"/signup","/app/signup"})
     public ResponseEntity<String> signupApi(HttpServletRequest request,@RequestBody String obj){
         JSONObject userObj = new JSONObject(obj);
@@ -77,9 +80,6 @@ public class LoginController {
         return ResponseEntity.status(200).body(rsp.toString());
     }
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
     @PostMapping("/pswdBcrypt")
     public ResponseEntity<String> getBcryptPswrd(@RequestBody String pswrd){
         return ResponseEntity.status(200).body(userService.bcryptPassword(pswrd));
@@ -135,7 +135,7 @@ public class LoginController {
             rsp.setMessage("Error logging out");
             rsp.setStatus(0);
         }
-        return ResponseEntity.ok(rsp.rspToJson().toString());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
     @PostMapping("/cms/refresh_token")
@@ -154,6 +154,6 @@ public class LoginController {
         rsp.put("Refresh-Token",newRefreshToken);
         userService.setToken(Integer.parseInt(userId),newAccessToken,newRefreshToken);
 
-        return ResponseEntity.ok(rsp.toString());
+        return ResponseEntity.status(200).body(rsp.toString());
     }
 }
