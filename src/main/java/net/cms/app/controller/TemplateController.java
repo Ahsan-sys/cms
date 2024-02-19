@@ -45,8 +45,7 @@ public class TemplateController {
                 String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
                 String type= CommonMethods.getTemplateType(request.getServletPath());
-                if(categoriesService.getCategory(Integer.parseInt(reqData.getString("category_id." +
-                        "")),userId).isEmpty()){
+                if(categoriesService.getCategory(Integer.parseInt(reqData.getString("category_id")),userId).isEmpty()){
                     rsp.setStatus(0);
                     rsp.setMessage("Invalid category id");
                 }else{
@@ -60,7 +59,6 @@ public class TemplateController {
                 }
             }
         }catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
             rsp.setStatus(0);
             rsp.setMessage(e.getMessage());
         }
