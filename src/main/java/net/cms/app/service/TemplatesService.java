@@ -5,8 +5,13 @@ import net.cms.app.utility.CommonMethods;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
@@ -14,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,9 +65,9 @@ public class TemplatesService {
                         obj.put("version", rs.getString("version"));
                         obj.put("expiry_date", CommonMethods.parseNullString(rs.getString("expiry_date")));
 
-                        docUrl = getTemplateUrl(jdbc,"user_documents",userId,rs.getString("category_id"));
+                        docUrl = getTemplateUrl("user_documents",userId,rs.getString("category_id"));
                     }else{
-                        docUrl = getTemplateUrl(jdbc,"admin_documents",userId,rs.getString("category_id"));
+                        docUrl = getTemplateUrl("admin_documents",userId,rs.getString("category_id"));
                     }
 
                     obj.put("doc_url", docUrl+rs.getString("actual_file_name"));
@@ -76,7 +82,52 @@ public class TemplatesService {
             return new JSONArray(list);
 
         }catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
+            return new JSONArray();
+        }
+    }
+
+    public JSONArray getRecentDownloads(int userId, String categoryId,String type){
+        try{
+            List<Object> params = new ArrayList<>();
+            String query = "SELECT t.* FROM recent_downloads rd left join templates t on rd.template_id = t.id and rd.user_id=? where category_id=? ";
+            params.add(userId);
+            params.add(categoryId);
+
+            List<JSONObject> list = jdbc.query(query,params.toArray(), new RowMapper<JSONObject>() {
+                @Override
+                public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", rs.getInt("id"));
+                    obj.put("uuid", rs.getString("uuid"));
+                    obj.put("title", rs.getString("title"));
+                    obj.put("description", CommonMethods.parseNullString(rs.getString("description")));
+                    obj.put("category_id", rs.getString("category_id"));
+                    obj.put("actual_file_name", rs.getString("actual_file_name"));
+
+                    String docUrl="";
+                    if(type.equals("doc")){
+                        obj.put("version", rs.getString("version"));
+                        obj.put("expiry_date", CommonMethods.parseNullString(rs.getString("expiry_date")));
+
+                        docUrl = getTemplateUrl("user_documents",userId,rs.getString("category_id"));
+                    }else{
+                        docUrl = getTemplateUrl("admin_documents",userId,rs.getString("category_id"));
+                    }
+
+                    obj.put("doc_url", docUrl+rs.getString("actual_file_name"));
+                    obj.put("created_dt", rs.getString("created_dt"));
+                    obj.put("created_by", rs.getString("created_by"));
+                    obj.put("updated_dt", rs.getString("updated_dt"));
+                    obj.put("updated_by", rs.getString("updated_by"));
+                    return obj;
+                }
+            });
+
+            return new JSONArray(list);
+
+        }catch (Exception e){
+            e.printStackTrace();
             return new JSONArray();
         }
     }
@@ -100,9 +151,9 @@ public class TemplatesService {
                         obj.put("version", rs.getString("version"));
                         obj.put("expiry_date", CommonMethods.parseNullString(rs.getString("expiry_date")));
 
-                        docUrl = getTemplateUrl(jdbc,"user_documents",userId,rs.getString("category_id"));
+                        docUrl = getTemplateUrl("user_documents",userId,rs.getString("category_id"));
                     }else{
-                        docUrl = getTemplateUrl(jdbc,"admin_documents",userId,rs.getString("category_id"));
+                        docUrl = getTemplateUrl("admin_documents",userId,rs.getString("category_id"));
                     }
                     obj.put("doc_url", docUrl+rs.getString("actual_file_name"));
                     obj.put("created_dt", rs.getString("created_dt"));
@@ -118,10 +169,14 @@ public class TemplatesService {
         }
     }
 
+    public boolean addToRecentDownload(String templateId, String userId){
+        return jdbc.update("insert into recent_downloads (template_id,user_id) values (?,?)",templateId,userId)>0;
+    }
+
     @Transactional
     public boolean createTemplate(MultipartFile file, JSONObject obj, String type, int userId){
         try{
-            String docUrl = getTemplateUrl(jdbc, type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
+            String docUrl = getTemplateUrl(type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
             String actualFileName = obj.getString("title") + getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));
 
             if(uploadFile(file, docUrl,actualFileName)){
@@ -165,14 +220,48 @@ public class TemplatesService {
     public boolean updateTemplate(MultipartFile file, JSONObject obj, String type, int userId){
         try{
             String oldFileName = obj.getString("actual_file_name");
-            String docUrl = getTemplateUrl(jdbc, type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
-            String newFileName = obj.getString("title") + getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));
-            if(uploadFile(file, docUrl,newFileName)){
+            String docUrl = getTemplateUrl(type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
 
+            if(!file.isEmpty()){
+                String newFileName = obj.getString("title") + getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));
+                if(uploadFile(file, docUrl,newFileName)){
+
+                    List<Object> queryParams = new ArrayList<>();
+                    StringBuilder query = new StringBuilder("update templates set updated_by=?,version=version+1,actual_file_name=? ");
+                    queryParams.add(userId);
+                    queryParams.add(newFileName);
+
+                    if (obj.has("description")) {
+                        query.append(", description=?");
+                        queryParams.add(obj.getString("description"));
+                    }
+                    if (obj.has("expiry_date")) {
+                        query.append(", expiry_date=?");
+                        queryParams.add(obj.getString("expiry_date"));
+                    }
+
+                    query.append(" where id=?");
+                    queryParams.add(obj.get("template_id"));
+
+                    if(jdbc.update(query.toString(), queryParams.toArray()) > 0){
+                        if(!newFileName.equals(oldFileName)) {
+                            deleteFile(docUrl+oldFileName);
+                        }
+                        return true;
+                    }else{
+                        if(!newFileName.equals(oldFileName)) {
+                            deleteFile(docUrl+newFileName);
+                        }
+                        return false;
+                    }
+
+                }else{
+                    return false;
+                }
+            }else{
                 List<Object> queryParams = new ArrayList<>();
-                StringBuilder query = new StringBuilder("update templates set updated_by=?,version=version+1,actual_file_name=? ");
+                StringBuilder query = new StringBuilder("update templates set updated_by=? ");
                 queryParams.add(userId);
-                queryParams.add(newFileName);
 
                 if (obj.has("description")) {
                     query.append(", description=?");
@@ -186,21 +275,9 @@ public class TemplatesService {
                 query.append(" where id=?");
                 queryParams.add(obj.get("template_id"));
 
-                if(jdbc.update(query.toString(), queryParams.toArray()) > 0){
-                    if(!newFileName.equals(oldFileName)) {
-                        deleteFile(docUrl+oldFileName);
-                    }
-                    return true;
-                }else{
-                    if(!newFileName.equals(oldFileName)) {
-                        deleteFile(docUrl+newFileName);
-                    }
-                    return false;
-                }
-
-            }else{
-                return false;
+                return jdbc.update(query.toString(), queryParams.toArray()) > 0;
             }
+
         }catch (Exception e){
             e.printStackTrace();
             return false;
@@ -209,7 +286,7 @@ public class TemplatesService {
 
     public boolean deleteTemplate(int templateId, String type, int userId,JSONObject obj){
         try{
-            String docUrl = getTemplateUrl(jdbc, type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
+            String docUrl = getTemplateUrl(type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
             System.out.println(docUrl+obj.getString("actual_file_name"));
             if(deleteFile(docUrl+obj.getString("actual_file_name"))){
                 return jdbc.update("DELETE FROM templates WHERE id = ? and created_by=?", templateId,userId) > 0;
@@ -242,7 +319,7 @@ public class TemplatesService {
         return file.delete();
     }
 
-    private String getTemplateUrl(JdbcTemplate jdbc,String code, int userId, String categoryId){
+    private String getTemplateUrl(String code, int userId, String categoryId){
         String url="";
         String basePath;
         String userUuid;

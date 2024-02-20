@@ -82,6 +82,13 @@ create table config(
     comments text
 );
 
+create table recent_downloads(
+    id int(11) primary key AUTO_INCREMENT not null,
+    template_id int(11) not null,
+    user_id int(11) not null,
+    created_dt timestamp not null default current_timestamp()
+);
+
 insert into profiles (name,role) value ("Super Admin","super_admin"),("User","user");
 insert into urls (url) value ("/api/admin/user"),("/api/admin/profile"),("/api/cms/refresh_token");
 insert into urls (url) value ("/api/cms/logout"),("/api/cms/documents"),("/api/admin/templates"),("/api/cms/documentCategories"),("/api/cms/updateUser"),

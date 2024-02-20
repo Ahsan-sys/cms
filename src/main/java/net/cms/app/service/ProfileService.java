@@ -55,9 +55,25 @@ public class ProfileService {
         }
     }
 
+    public JSONArray getAllUrls(){
+        try{
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM urls order by id");
+
+            JSONArray jsonArray = new JSONArray();
+            for (Map<String, Object> row : rows) {
+                JSONObject jsonObject = new JSONObject(row);
+                jsonArray.put(jsonObject);
+            }
+            return jsonArray;
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public JSONArray getAllAuhtorizedUrls(String roleId){
         try{
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT pa.profile_id,p.role,pa.url_id,u.url FROM profile_authorities pa LEFT JOIN urls u ON u.id = pa.url_id " +
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT pa.profile_id,p.role,pa.url_id,u.url,pa.request_methods FROM profile_authorities pa LEFT JOIN urls u ON u.id = pa.url_id " +
                 " LEFT JOIN profiles p on pa.profile_id=p.id WHERE p.id=?",roleId);
 
             JSONArray jsonArray = new JSONArray();

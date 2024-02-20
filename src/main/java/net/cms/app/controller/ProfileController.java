@@ -53,6 +53,15 @@ public class ProfileController {
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
 
     }
+
+    @GetMapping("/allUrls")
+    public ResponseEntity<String> getAllUrls(){
+        GenericResponse rsp = new GenericResponse();
+        rsp.setDataArray(profileService.getAllUrls());
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
+
+    }
+
     @PostMapping
     public ResponseEntity<String> createProfileApi(HttpServletRequest request, @RequestBody String obj){
         String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));

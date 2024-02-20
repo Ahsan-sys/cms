@@ -78,22 +78,14 @@ public class JwtUtil {
         claims.put("email",email);
         SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
 
-        if(canTokenExpire){
-            return Jwts.builder()
-                    .setIssuer(APP_NAME)
-                    .setClaims(claims)
-                    .setSubject(userId)
-                    .setIssuedAt(new Date(System.currentTimeMillis()))
-                    .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME)))
-                    .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
-        }else{
-            return Jwts.builder()
-                    .setIssuer(APP_NAME)
-                    .setClaims(claims)
-                    .setSubject(userId)
-                    .setIssuedAt(new Date(System.currentTimeMillis()))
-                    .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
-        }
+        return Jwts.builder()
+                .setIssuer(APP_NAME)
+                .setClaims(claims)
+                .setSubject(userId)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME),canTokenExpire))
+                .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
+
     }
 
     public String generateRefreshToken(String userId){
@@ -102,11 +94,14 @@ public class JwtUtil {
                 .setIssuer(APP_NAME)
                 .setSubject(userId)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME+2)))
+                .setExpiration(createExpiry(Long.valueOf(ACCESS_TOKEN_EXPIRY_TIME+2),true))
                 .signWith(secretKey,SIGNATURE_ALGORITHM).compact();
     }
 
-    public Date createExpiry(Long expiryTime){
+    public Date createExpiry(Long expiryTime,boolean canTokenExpire){
+        if(!canTokenExpire){
+            expiryTime=expiryTime*10000;
+        }
         return new Date(System.currentTimeMillis() + expiryTime * 60 * 1000);
     }
 

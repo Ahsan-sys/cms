@@ -10,10 +10,20 @@ import net.cms.app.utility.JwtUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 @RestController
@@ -60,13 +70,43 @@ public class TemplateController {
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
+    @GetMapping("/recent-downloads")
+    public ResponseEntity<String> getRecentDownloadsApi(HttpServletRequest request, @RequestParam String category_id){
+        GenericResponse rsp = new GenericResponse();
+        try {
+            if(CommonMethods.parseNullString(category_id).isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Category id is missing");
+            }else{
+                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+
+                String type= CommonMethods.getTemplateType(request.getServletPath());
+                if(categoriesService.getCategory(Integer.parseInt(category_id),userId).isEmpty()){
+                    rsp.setStatus(0);
+                    rsp.setMessage("Invalid category id");
+                }else{
+                    JSONArray rspArray = templatesService.getRecentDownloads(Integer.parseInt(userId),category_id,type);
+                    if(rspArray.isEmpty()){
+                        rsp.setStatus(0);
+                        rsp.setMessage("Error Fetching data");
+                    }else{
+                        rsp.setDataArray(rspArray);
+                    }
+                }
+            }
+        }catch (Exception e){
+            rsp.setStatus(0);
+            rsp.setMessage(e.getMessage());
+        }
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<String> getTemplateApi(HttpServletRequest request, @PathVariable int id){
         GenericResponse rsp = new GenericResponse();
 
         try{
             String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
-
             String type= CommonMethods.getTemplateType(request.getServletPath());
 
             JSONObject rspObj = templatesService.getTemplate(Integer.parseInt(userId),id,type);
@@ -81,6 +121,48 @@ public class TemplateController {
             rsp.setMessage(e.getMessage());
         }
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
+    }
+
+    @GetMapping({"/download-file/{id}","/read-file/{id}"})
+    public ResponseEntity<Resource> downloadFileApi(HttpServletRequest request,@PathVariable String id) {
+        try {
+            String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+            String type= CommonMethods.getTemplateType(request.getServletPath());
+
+            if(!CommonMethods.parseNullString(id).isEmpty()){
+                JSONObject templateObj = templatesService.getTemplate(Integer.parseInt(userId),Integer.parseInt(id),type);
+                 if(!templateObj.isEmpty()){
+                    String filePath = templateObj.getString("doc_url");
+                    File newFile = new File(filePath);
+
+                    if(newFile.exists()){
+                        Path file = Paths.get(filePath).normalize();
+                        Resource resource = new InputStreamResource(new FileInputStream(file.toFile()));
+                        String contentType = Files.probeContentType(file);
+
+                        if (contentType == null) {
+                            contentType = "application/octet-stream";
+                        }
+
+                        if(templatesService.addToRecentDownload(id,userId)){
+
+                            String contetnDisposition = "inline";
+                            if(request.getServletPath().contains("download")){
+                                contetnDisposition = "attachment";
+                            }
+
+                            return ResponseEntity.ok()
+                                    .contentType(MediaType.parseMediaType(contentType))
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, contetnDisposition+"; filename=\"" + file.getFileName().toString() + "\"")
+                                    .body(resource);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ResponseEntity.internalServerError().build();
     }
 
     @PostMapping
@@ -146,19 +228,20 @@ public class TemplateController {
         GenericResponse rsp = new GenericResponse();
         try{
             JSONObject templateObj = new JSONObject(obj);
-            if(file.isEmpty()){
-                rsp.setMessage("File should not be empty");
-                rsp.setStatus(0);
-            }else if(!CommonMethods.isSupportedFileType(file.getContentType())){
-                rsp.setMessage("File type is invalid");
-                rsp.setStatus(0);
-            }else if(!CommonMethods.isValidFileSize(file.getSize())){
-                rsp.setMessage("File is too large");
-                rsp.setStatus(0);
-            }else if(!templateObj.has("template_id") || CommonMethods.parseNullString(templateObj.getString("template_id")).isEmpty()){
+            if(!templateObj.has("template_id") || CommonMethods.parseNullString(templateObj.getString("template_id")).isEmpty()){
                 rsp.setMessage("Template id is missing");
                 rsp.setStatus(0);
             }else{
+                if(!file.isEmpty()){
+                    if(!CommonMethods.isSupportedFileType(file.getContentType())){
+                        rsp.setMessage("File type is invalid");
+                        rsp.setStatus(0);
+                    }else if(!CommonMethods.isValidFileSize(file.getSize())){
+                        rsp.setMessage("File is too large");
+                        rsp.setStatus(0);
+                    }
+                }
+
                 String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
                 String type= CommonMethods.getTemplateType(request.getServletPath());
 

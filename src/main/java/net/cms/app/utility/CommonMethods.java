@@ -54,16 +54,16 @@ public class CommonMethods {
 
     public static boolean isSupportedFileType(String contentType) {
         String[] supportedTypes = {
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation", // PPTX
-                "text/plain", // TXT
                 "application/pdf", // PDF
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation", // PPTX
+                "application/vnd.ms-powerpoint", // PPT
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+                "text/plain", // TXT
                 "application/vnd.ms-excel", // XLS
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
                 "image/jpeg", // JPEG
                 "image/png", // PNG
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
                 "text/csv", // CSV
-                "application/vnd.ms-powerpoint", // PPT
                 "application/xml", // XML
         };
 
