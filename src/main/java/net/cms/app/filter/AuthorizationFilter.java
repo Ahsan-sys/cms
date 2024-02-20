@@ -48,18 +48,22 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                                 filterChain.doFilter(request, response);
                             }
                         } catch (Exception e) {
-                            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
-                            errorRsp.setStatus(0);
+                            e.printStackTrace();
+                            response.setStatus(403);
+                            errorRsp.setStatus(403);
                             errorRsp.setMessage(e.getMessage());
                         }
                     }catch (Exception e){
-                        errorRsp.setStatus(0);
+                        e.printStackTrace();
+                        response.setStatus(403);
+                        errorRsp.setStatus(403);
                         errorRsp.setMessage(e.getMessage());
                     }
                 }
             }else{
                 String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
                 if(accessToken.isEmpty()){
+                    response.setStatus(403);
                     errorRsp.setStatus(403);
                     errorRsp.setMessage("Access-token missing");
                 }else{
@@ -85,12 +89,15 @@ public class AuthorizationFilter extends OncePerRequestFilter {
                                 }
                             }
                         } catch (Exception e) {
-                            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
-                            errorRsp.setStatus(0);
+                            e.printStackTrace();
+                            response.setStatus(403);
+                            errorRsp.setStatus(403);
                             errorRsp.setMessage(e.getMessage());
                         }
                     }catch (Exception e){
-                        errorRsp.setStatus(0);
+                        e.printStackTrace();
+                        response.setStatus(403);
+                        errorRsp.setStatus(403);
                         errorRsp.setMessage(e.getMessage());
                     }
                 }
