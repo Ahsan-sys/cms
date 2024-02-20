@@ -30,20 +30,18 @@ public class TemplatesService {
     @Autowired
     private JdbcTemplate jdbc;
 
-    public JSONArray getTemplates(int userId, JSONObject obj,String type){
+    public JSONArray getTemplates(int userId, String categoryId,String type, String searchTxt){
         try{
             List<Object> params = new ArrayList<>();
             String query = "SELECT * FROM templates where created_by=? and category_id=? ";
-
             params.add(userId);
-            params.add(obj.getString("category_id"));
+            params.add(categoryId);
 
-            if(obj.has("search") && !CommonMethods.parseNullString(obj.getString("search")).isEmpty()){
-                query+=" and title like ?";
-                params.add("%" + obj.getString("search").trim() + "%");
+            if(!CommonMethods.parseNullString(searchTxt).isEmpty()){
+                query+=" and title like ? ";
+                params.add("%"+searchTxt+"%");
             }
-            query+= " order by id";
-
+            query+=" order by id ";
 
             List<JSONObject> list = jdbc.query(query,params.toArray(), new RowMapper<JSONObject>() {
                 @Override

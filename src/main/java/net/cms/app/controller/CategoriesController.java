@@ -97,11 +97,9 @@ public class CategoriesController {
         }else{
             String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
             String userId = jwtUtil.extractUserId(accessToken);
-
             String type= CommonMethods.getTemplateType(request.getServletPath());
-            JSONObject obj = new JSONObject();
-            obj.put("category_id",id);
-            if(!templatesService.getTemplates(Integer.parseInt(userId),obj,type).isEmpty()){
+
+            if(!templatesService.getTemplates(Integer.parseInt(userId),id,type,null).isEmpty()){
                 rsp.setMessage("Cannot delete category, it has templates inside");
                 rsp.setStatus(0);
             }else{

@@ -30,26 +30,21 @@ public class TemplateController {
     @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getTemplatesApi(HttpServletRequest request, @RequestBody String obj){
+    public ResponseEntity<String> getTemplatesApi(HttpServletRequest request, @RequestParam String category_id,@RequestParam(required = false) String search){
         GenericResponse rsp = new GenericResponse();
         try {
-            JSONObject reqData = new JSONObject(obj);
-
-            if(reqData.isEmpty()){
-                rsp.setStatus(0);
-                rsp.setMessage("Required data is missing");
-            }else if(!reqData.has("category_id") || CommonMethods.parseNullString(reqData.getString("category_id")).isEmpty()){
+            if(CommonMethods.parseNullString(category_id).isEmpty()){
                 rsp.setStatus(0);
                 rsp.setMessage("Category id is missing");
             }else{
                 String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
                 String type= CommonMethods.getTemplateType(request.getServletPath());
-                if(categoriesService.getCategory(Integer.parseInt(reqData.getString("category_id")),userId).isEmpty()){
+                if(categoriesService.getCategory(Integer.parseInt(category_id),userId).isEmpty()){
                     rsp.setStatus(0);
                     rsp.setMessage("Invalid category id");
                 }else{
-                    JSONArray rspArray = templatesService.getTemplates(Integer.parseInt(userId),reqData,type);
+                    JSONArray rspArray = templatesService.getTemplates(Integer.parseInt(userId),category_id,type,search);
                     if(rspArray.isEmpty()){
                         rsp.setStatus(0);
                         rsp.setMessage("Error Fetching data");
