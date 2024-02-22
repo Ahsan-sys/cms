@@ -44,7 +44,7 @@ public class UserController {
         String userId = jwtUtil.extractUserId(accessToken);
 
         GenericResponse rsp = new GenericResponse();
-        JSONObject obj = userService.getUserWithId(id,userId);
+        JSONObject obj = userService.getUserWithId(id);
         if(obj==null){
             rsp.setStatus(0);
             rsp.setMessage("Error getting data for user");

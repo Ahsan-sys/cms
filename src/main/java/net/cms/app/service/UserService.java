@@ -223,9 +223,9 @@ public class UserService{
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> row : rows) {
                 JSONObject jsonObject = new JSONObject(row);
-                if(jsonObject.getInt("id") != Integer.parseInt(userId)){
-                    jsonObject.remove("password");
-                }
+                jsonObject.remove("password");
+                jsonObject.put("profile",profileService.getProfileWithId(jsonObject.getInt("profile_id")));
+                jsonObject.remove("profile_id");
                 jsonArray.put(jsonObject);
             }
             return jsonArray;
@@ -235,16 +235,16 @@ public class UserService{
         }
     }
 
-    public JSONObject getUserWithId(int id,String userId){
+    public JSONObject getUserWithId(int id){
         try{
             List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users WHERE id = ?", id);
 
             if (!rows.isEmpty()) {
                 Map<String, Object> row = rows.get(0);
                 JSONObject obj = new JSONObject(row);
-                if(obj.getInt("id") != Integer.parseInt(userId)){
-                    obj.remove("password");
-                }
+                obj.remove("password");
+                obj.put("profile",profileService.getProfileWithId(obj.getInt("profile_id")));
+                obj.remove("profile_id");
                 return obj;
             } else {
                 return null;

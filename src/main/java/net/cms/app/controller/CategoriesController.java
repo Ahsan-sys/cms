@@ -27,12 +27,10 @@ public class CategoriesController {
     @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String search,@RequestParam(required = false) String userId){
+    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String search){
 
-        if(CommonMethods.parseNullString(userId).isEmpty()){
-            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-            userId = jwtUtil.extractUserId(accessToken);
-        }
+        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+        String userId = jwtUtil.extractUserId(accessToken);
         String type = CommonMethods.getTemplateType(request.getServletPath());
 
         GenericResponse rsp = new GenericResponse();
@@ -46,13 +44,27 @@ public class CategoriesController {
         return ResponseEntity.status(200).body(rsp.rspToJson().toString());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<String> getCategoryApi(HttpServletRequest request, @PathVariable int id,@RequestParam(required = false) String userId){
-
-        if(CommonMethods.parseNullString(userId).isEmpty()){
-            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-            userId = jwtUtil.extractUserId(accessToken);
+    @GetMapping("/getAllCategories")
+    public ResponseEntity<String> getAllCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String type,@RequestParam(required = false) String userId){
+        if(request.getServletPath().contains("cms")){
+            type="tmp";
         }
+        GenericResponse rsp = new GenericResponse();
+
+        if(type.equals("doc") || type.equals("tmp")){
+            rsp.setDataArray(categoriesService.getAllCategories(type, CommonMethods.parseNullInt(userId)));
+        }else{
+            rsp.setStatus(0);
+            rsp.setMessage("Document type invalid");
+        }
+        return ResponseEntity.status(200).body(rsp.rspToJson().toString());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<String> getCategoryApi(HttpServletRequest request, @PathVariable int id){
+
+        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+        String userId = jwtUtil.extractUserId(accessToken);
 
         GenericResponse rsp = new GenericResponse();
         if(CommonMethods.parseNullInt(id)==0){

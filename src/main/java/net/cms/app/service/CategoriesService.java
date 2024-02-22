@@ -58,6 +58,41 @@ public class CategoriesService {
         }
     }
 
+    public JSONArray getAllCategories(String type, int userId){
+        try{
+            List<Object> params = new ArrayList<>();
+            String query = "SELECT c.*,COUNT(t.id) as templates_count from categories c LEFT JOIN templates t ON c.id=t.category_id GROUP BY c.id having type=? ";
+            params.add(type);
+
+            if(userId > 0 ){
+                query += " and created_by = ?";
+                params.add(userId);
+            }
+            query+= " order by id";
+
+            List<JSONObject> list = jdbc.query(query,params.toArray(), new RowMapper<JSONObject>() {
+                @Override
+                public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", rs.getInt("id"));
+                    obj.put("title", rs.getString("title"));
+                    obj.put("templates_count", rs.getString("templates_count"));
+                    obj.put("created_dt", rs.getString("created_dt"));
+                    obj.put("created_by", rs.getString("created_by"));
+                    obj.put("updated_dt", rs.getString("updated_dt"));
+                    obj.put("updated_by", rs.getString("updated_by"));
+                    return obj;
+                }
+            });
+
+            return new JSONArray(list);
+
+        }catch (Exception e){
+            e.printStackTrace();
+            return new JSONArray();
+        }
+    }
+
     public JSONObject getCategory(int id, String userId){
         try {
             String query = "SELECT c.*,COUNT(t.id) as templates_count from categories c LEFT JOIN templates t ON c.id=t.category_id GROUP BY c.id having c.id=? and c.created_by=?";
