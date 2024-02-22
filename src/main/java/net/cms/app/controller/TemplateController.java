@@ -127,14 +127,13 @@ public class TemplateController {
     public ResponseEntity<Resource> downloadFileApi(HttpServletRequest request,@PathVariable String id) {
         try {
             String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
-            String type= CommonMethods.getTemplateType(request.getServletPath());
 
             if(!CommonMethods.parseNullString(id).isEmpty()){
-                JSONObject templateObj = templatesService.getTemplateWithId(Integer.parseInt(id),type);
+                JSONObject templateObj = templatesService.getTemplateWithId(Integer.parseInt(id));
                  if(!templateObj.isEmpty()){
                     String filePath = templateObj.getString("doc_url");
                     File newFile = new File(filePath);
-                
+
                     if(newFile.exists()){
                         Path file = Paths.get(filePath).normalize();
                         Resource resource = new InputStreamResource(new FileInputStream(file.toFile()));

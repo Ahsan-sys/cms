@@ -169,7 +169,7 @@ public class TemplatesService {
         }
     }
 
-    public JSONObject getTemplateWithId(int templateId, String type){
+    public JSONObject getTemplateWithId(int templateId){
         try {
             String query = "SELECT t.*,c.type FROM templates t left join categories c on t.category_id=c.id where t.id=?";
             return jdbc.queryForObject(query, new Object[]{templateId}, new RowMapper<JSONObject>() {
@@ -177,7 +177,6 @@ public class TemplatesService {
                 public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
                     JSONObject obj = new JSONObject();
                     obj.put("id", rs.getInt("id"));
-                    System.out.println("type======="+rs.getString("type"));
                     obj.put("uuid", rs.getString("uuid"));
                     obj.put("title", rs.getString("title"));
                     obj.put("description", CommonMethods.parseNullString(rs.getString("description")));
