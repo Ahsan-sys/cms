@@ -130,11 +130,11 @@ public class TemplateController {
             String type= CommonMethods.getTemplateType(request.getServletPath());
 
             if(!CommonMethods.parseNullString(id).isEmpty()){
-                JSONObject templateObj = templatesService.getTemplate(Integer.parseInt(userId),Integer.parseInt(id),type);
+                JSONObject templateObj = templatesService.getTemplateWithId(Integer.parseInt(id),type);
                  if(!templateObj.isEmpty()){
                     String filePath = templateObj.getString("doc_url");
                     File newFile = new File(filePath);
-
+                
                     if(newFile.exists()){
                         Path file = Paths.get(filePath).normalize();
                         Resource resource = new InputStreamResource(new FileInputStream(file.toFile()));

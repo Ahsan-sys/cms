@@ -169,6 +169,44 @@ public class TemplatesService {
         }
     }
 
+    public JSONObject getTemplateWithId(int templateId, String type){
+        try {
+            String query = "SELECT t.*,c.type FROM templates t left join categories c on t.category_id=c.id where t.id=?";
+            return jdbc.queryForObject(query, new Object[]{templateId}, new RowMapper<JSONObject>() {
+                @Override
+                public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    JSONObject obj = new JSONObject();
+                    obj.put("id", rs.getInt("id"));
+                    System.out.println("type======="+rs.getString("type"));
+                    obj.put("uuid", rs.getString("uuid"));
+                    obj.put("title", rs.getString("title"));
+                    obj.put("description", CommonMethods.parseNullString(rs.getString("description")));
+                    obj.put("category_id", rs.getString("category_id"));
+                    obj.put("actual_file_name", rs.getString("actual_file_name"));
+
+                    String docUrl="";
+                    if(rs.getString("type").equals("doc")){
+                        obj.put("version", rs.getString("version"));
+                        obj.put("expiry_date", CommonMethods.parseNullString(rs.getString("expiry_date")));
+
+                        docUrl = getTemplateUrl("user_documents", Integer.parseInt(rs.getString("created_by")),rs.getString("category_id"));
+                    }else{
+                        docUrl = getTemplateUrl("admin_documents", Integer.parseInt(rs.getString("created_by")),rs.getString("category_id"));
+                    }
+                    obj.put("doc_url", docUrl+rs.getString("actual_file_name"));
+                    obj.put("created_dt", rs.getString("created_dt"));
+                    obj.put("created_by", rs.getString("created_by"));
+                    obj.put("updated_dt", rs.getString("updated_dt"));
+                    obj.put("updated_by", rs.getString("updated_by"));
+                    return obj;
+                }
+            });
+        } catch (EmptyResultDataAccessException e) {
+            e.printStackTrace();
+            return new JSONObject();
+        }
+    }
+
     public boolean addToRecentDownload(String templateId, String userId){
         return jdbc.update("insert into recent_downloads (template_id,user_id) values (?,?)",templateId,userId)>0;
     }

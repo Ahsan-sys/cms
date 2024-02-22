@@ -26,7 +26,7 @@ public class CategoriesService {
     public JSONArray getCategories(int userId, String type, String searchTxt){
         try{
             List<Object> params = new ArrayList<>();
-            String query = "SELECT * FROM categories where created_by=? and type=? ";
+            String query = "SELECT c.*,COUNT(t.id) as templates_count from categories c LEFT JOIN templates t ON c.id=t.category_id GROUP BY c.id having c.created_by=? and type=? ";
 
             params.add(userId);
             params.add(type);
@@ -44,6 +44,7 @@ public class CategoriesService {
                     JSONObject obj = new JSONObject();
                     obj.put("id", rs.getInt("id"));
                     obj.put("title", rs.getString("title"));
+                    obj.put("templates_count", rs.getString("templates_count"));
                     obj.put("created_dt", rs.getString("created_dt"));
                     obj.put("created_by", rs.getString("created_by"));
                     obj.put("updated_dt", rs.getString("updated_dt"));
