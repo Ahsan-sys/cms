@@ -87,12 +87,11 @@ public class TemplatesService {
         }
     }
 
-    public JSONArray getRecentDownloads(int userId, String categoryId,String type){
+    public JSONArray getRecentDownloads(int userId,String type){
         try{
             List<Object> params = new ArrayList<>();
-            String query = "SELECT t.* FROM recent_downloads rd left join templates t on rd.template_id = t.id and rd.user_id=? where category_id=? ";
+            String query = "SELECT t.* FROM recent_downloads rd left join templates t on rd.template_id = t.id where rd.user_id=? ";
             params.add(userId);
-            params.add(categoryId);
 
             List<JSONObject> list = jdbc.query(query,params.toArray(), new RowMapper<JSONObject>() {
                 @Override

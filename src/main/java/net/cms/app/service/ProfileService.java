@@ -30,6 +30,7 @@ public class ProfileService {
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> row : rows) {
                 JSONObject jsonObject = new JSONObject(row);
+                jsonObject.put("authorized_urls",getAllAuhtorizedUrls(String.valueOf(jsonObject.getInt("id"))));
                 jsonArray.put(jsonObject);
             }
             return jsonArray;
@@ -45,7 +46,9 @@ public class ProfileService {
 
             if (!rows.isEmpty()) {
                 Map<String, Object> row = rows.get(0);
-                return new JSONObject(row);
+                JSONObject obj = new JSONObject(row);
+                obj.put("authorized_urls",getAllAuhtorizedUrls(String.valueOf(obj.getInt("id"))));
+                return obj;
             } else {
                 return null;
             }

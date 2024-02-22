@@ -210,7 +210,7 @@ public class UserService{
                     return false;
                 }
             }catch (Exception e){
-                System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+                e.printStackTrace();
                 throw e;
             }
         } );
@@ -230,7 +230,7 @@ public class UserService{
             }
             return jsonArray;
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            e.printStackTrace();
             return null;
         }
     }
@@ -250,7 +250,7 @@ public class UserService{
                 return null;
             }
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+e.getStackTrace()[0]+ " || "+e.getStackTrace()[1]);
+            e.printStackTrace();
             return null;
         }
     }
@@ -330,7 +330,7 @@ public class UserService{
             }
             return false;
         }catch (Exception e){
-            System.out.println(e.getMessage() + " || Trace: "+ Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
             return false;
         }
     }

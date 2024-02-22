@@ -27,11 +27,13 @@ public class CategoriesController {
     @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String search){
-        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-        String userId = jwtUtil.extractUserId(accessToken);
+    public ResponseEntity<String> getCategoriesApi(HttpServletRequest request, @RequestParam(required = false) String search,@RequestParam(required = false) String userId){
 
-        String type= CommonMethods.getTemplateType(request.getServletPath());
+        if(CommonMethods.parseNullString(userId).isEmpty()){
+            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+            userId = jwtUtil.extractUserId(accessToken);
+        }
+        String type = CommonMethods.getTemplateType(request.getServletPath());
 
         GenericResponse rsp = new GenericResponse();
         JSONArray rspArray = categoriesService.getCategories(Integer.parseInt(userId),type,search);
@@ -45,9 +47,12 @@ public class CategoriesController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<String> getCategoryApi(HttpServletRequest request, @PathVariable int id){
-        String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
-        String userId = jwtUtil.extractUserId(accessToken);
+    public ResponseEntity<String> getCategoryApi(HttpServletRequest request, @PathVariable int id,@RequestParam(required = false) String userId){
+
+        if(CommonMethods.parseNullString(userId).isEmpty()){
+            String accessToken = CommonMethods.parseNullString(request.getHeader("Access-Token"));
+            userId = jwtUtil.extractUserId(accessToken);
+        }
 
         GenericResponse rsp = new GenericResponse();
         if(CommonMethods.parseNullInt(id)==0){

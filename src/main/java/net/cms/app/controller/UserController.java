@@ -124,7 +124,7 @@ public class UserController {
             JSONObject profileObj = profileService.getProfileWithId(userObj.getInt("profile_id"));
             if(!profileService.isProfileValid(userObj.getInt("profile_id")) || profileObj.isEmpty()){
                 rsp.setStatus(0);
-                rsp.setMessage("Profile id missing or invalid");
+                rsp.setMessage("Profile id is invalid");
             }else if(profileObj.getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");

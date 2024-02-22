@@ -40,16 +40,18 @@ public class TemplateController {
     @Autowired
     private JwtUtil jwtUtil;
     @GetMapping
-    public ResponseEntity<String> getTemplatesApi(HttpServletRequest request, @RequestParam String category_id,@RequestParam(required = false) String search){
+    public ResponseEntity<String> getTemplatesApi(HttpServletRequest request, @RequestParam String category_id,@RequestParam(required = false) String search,@RequestParam(required = false) String userId){
         GenericResponse rsp = new GenericResponse();
         try {
             if(CommonMethods.parseNullString(category_id).isEmpty()){
                 rsp.setStatus(0);
                 rsp.setMessage("Category id is missing");
             }else{
-                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
-
+                if(CommonMethods.parseNullString(userId).isEmpty()){
+                    userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+                }
                 String type= CommonMethods.getTemplateType(request.getServletPath());
+
                 if(categoriesService.getCategory(Integer.parseInt(category_id),userId).isEmpty()){
                     rsp.setStatus(0);
                     rsp.setMessage("Invalid category id");
@@ -71,28 +73,19 @@ public class TemplateController {
     }
 
     @GetMapping("/recent-downloads")
-    public ResponseEntity<String> getRecentDownloadsApi(HttpServletRequest request, @RequestParam String category_id){
+    public ResponseEntity<String> getRecentDownloadsApi(HttpServletRequest request){
         GenericResponse rsp = new GenericResponse();
         try {
-            if(CommonMethods.parseNullString(category_id).isEmpty()){
-                rsp.setStatus(0);
-                rsp.setMessage("Category id is missing");
-            }else{
-                String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+            String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
 
-                String type= CommonMethods.getTemplateType(request.getServletPath());
-                if(categoriesService.getCategory(Integer.parseInt(category_id),userId).isEmpty()){
-                    rsp.setStatus(0);
-                    rsp.setMessage("Invalid category id");
-                }else{
-                    JSONArray rspArray = templatesService.getRecentDownloads(Integer.parseInt(userId),category_id,type);
-                    if(rspArray.isEmpty()){
-                        rsp.setStatus(0);
-                        rsp.setMessage("Error Fetching data");
-                    }else{
-                        rsp.setDataArray(rspArray);
-                    }
-                }
+            String type= CommonMethods.getTemplateType(request.getServletPath());
+
+            JSONArray rspArray = templatesService.getRecentDownloads(Integer.parseInt(userId),type);
+            if(rspArray.isEmpty()){
+                rsp.setStatus(0);
+                rsp.setMessage("Error Fetching data");
+            }else{
+                rsp.setDataArray(rspArray);
             }
         }catch (Exception e){
             rsp.setStatus(0);
@@ -102,11 +95,13 @@ public class TemplateController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<String> getTemplateApi(HttpServletRequest request, @PathVariable int id){
+    public ResponseEntity<String> getTemplateApi(HttpServletRequest request, @PathVariable int id,@RequestParam(required = false) String userId){
         GenericResponse rsp = new GenericResponse();
 
         try{
-            String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+            if(CommonMethods.parseNullString(userId).isEmpty()){
+                userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+            }
             String type= CommonMethods.getTemplateType(request.getServletPath());
 
             JSONObject rspObj = templatesService.getTemplate(Integer.parseInt(userId),id,type);

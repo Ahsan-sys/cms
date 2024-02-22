@@ -9,14 +9,11 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class CategoriesService {
@@ -56,21 +53,21 @@ public class CategoriesService {
             return new JSONArray(list);
 
         }catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
             return new JSONArray();
         }
     }
 
     public JSONObject getCategory(int id, String userId){
         try {
-            String query = "SELECT * FROM categories where id=? and created_by=? ";
+            String query = "SELECT c.*,COUNT(t.id) as templates_count from categories c LEFT JOIN templates t ON c.id=t.category_id GROUP BY c.id having c.id=? and c.created_by=?";
             return jdbc.queryForObject(query, new Object[]{id,userId}, new RowMapper<JSONObject>() {
                 @Override
                 public JSONObject mapRow(ResultSet rs, int rowNum) throws SQLException {
                     JSONObject obj = new JSONObject();
-                    // Assuming the table has columns: id, name, value
                     obj.put("id", rs.getInt("id"));
                     obj.put("title", rs.getString("title"));
+                    obj.put("templates_count", rs.getString("templates_count"));
                     obj.put("created_dt", rs.getString("created_dt"));
                     obj.put("created_by", rs.getString("created_by"));
                     obj.put("updated_dt", rs.getString("updated_dt"));
@@ -79,7 +76,7 @@ public class CategoriesService {
                 }
             });
         } catch (EmptyResultDataAccessException e) {
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
             return new JSONObject();
         }
     }
@@ -88,6 +85,7 @@ public class CategoriesService {
         try{
             return jdbc.update("insert ignore into categories (title, type, created_by) values (?,?,?)", title,type,createdBy)>0;
         }catch (Exception e){
+            e.printStackTrace();
             return false;
         }
     }
@@ -97,7 +95,7 @@ public class CategoriesService {
             jdbc.update("UPDATE categories SET title = ?,updated_by=? WHERE id = ?", title, updatedBy,categoryId);
             return true;
         }catch (DuplicateKeyException e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
             return false;
         }
     }

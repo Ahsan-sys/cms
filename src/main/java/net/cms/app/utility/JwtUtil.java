@@ -100,7 +100,7 @@ public class JwtUtil {
 
     public Date createExpiry(Long expiryTime,boolean canTokenExpire){
         if(!canTokenExpire){
-            expiryTime=expiryTime*10000;
+            expiryTime=expiryTime*10000000;
         }
         return new Date(System.currentTimeMillis() + expiryTime * 60 * 1000);
     }
