@@ -93,10 +93,16 @@ public class ProfileController {
                 rsp.setMessage("Role or name already exists");
             } else if (role.equalsIgnoreCase("super_admin")) {
                 rsp.setStatus(0);
-                rsp.setMessage("super_admin role can not be created");
+                rsp.setMessage("Super admin role can not be created");
+            }else if (role.equalsIgnoreCase("user")) {
+                rsp.setStatus(0);
+                rsp.setMessage("User role can not be created");
             } else if (name.equalsIgnoreCase("Super Admin")) {
                 rsp.setStatus(0);
-                rsp.setMessage("Super Admin role can not be created");
+                rsp.setMessage("Super admin role can not be created");
+            }else if (name.equalsIgnoreCase("User")) {
+                rsp.setStatus(0);
+                rsp.setMessage("User role can not be created");
             }else if (!profileObj.has("authorities") || profileObj.getJSONArray("authorities").length() <= 0) {
                 rsp.setStatus(0);
                 rsp.setMessage("Authorities are missing");

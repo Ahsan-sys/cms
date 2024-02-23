@@ -55,7 +55,9 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<String> createUserApi(@RequestBody String obj){
+    public ResponseEntity<String> createUserApi(HttpServletRequest request,@RequestBody String obj){
+        String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+
         JSONObject userObj = new JSONObject(obj);
         GenericResponse rsp = new GenericResponse();
         String emptyField = null;
@@ -68,8 +70,6 @@ public class UserController {
             emptyField = "Password";
         }else if(!userObj.has("profile_id") || CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
-        }else if(!userObj.has("created_by") || CommonMethods.parseNullInt(userObj.getInt("created_by"))==0){
-            emptyField = "Created by";
         }
 
         if(!CommonMethods.parseNullString(emptyField).isEmpty()){
@@ -84,6 +84,7 @@ public class UserController {
                 rsp.setStatus(0);
                 rsp.setMessage("Super admin profile can not be assigned");
             }else if(userService.findByEmail(userObj.getString("email"))==null) {
+                userObj.put("created_by",userId);
                 if (userService.createUser(userObj)) {
                     rsp.setData(userService.findByIdOrEmail(null,userObj.getString("email")).getJSONObject("data"));
                     rsp.setStatus(1);
@@ -101,7 +102,9 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateUserApi(@RequestBody String obj,@PathVariable int id){
+    public ResponseEntity<String> updateUserApi(HttpServletRequest request,@RequestBody String obj,@PathVariable int id){
+        String userId = jwtUtil.extractUserId(CommonMethods.parseNullString(request.getHeader("Access-Token")));
+
         JSONObject userObj = new JSONObject(obj);
         GenericResponse rsp = new GenericResponse();
         String emptyField = null;
@@ -113,14 +116,13 @@ public class UserController {
             emptyField = "User id";
         }else if(!userObj.has("profile_id") || CommonMethods.parseNullInt(userObj.getInt("profile_id"))==0){
             emptyField = "Profile";
-        }else if(!userObj.has("updated_by") || CommonMethods.parseNullInt(userObj.getInt("updated_by"))==0){
-            emptyField = "Updated by";
         }
 
         if(!CommonMethods.parseNullString(emptyField).isEmpty()){
             rsp.setStatus(0);
             rsp.setMessage(emptyField+" is required");
         }else {
+            userObj.put("updated_by",userId);
             JSONObject profileObj = profileService.getProfileWithId(userObj.getInt("profile_id"));
             if(!profileService.isProfileValid(userObj.getInt("profile_id")) || profileObj.isEmpty()){
                 rsp.setStatus(0);
