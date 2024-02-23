@@ -39,7 +39,8 @@ public class TemplatesService {
     public JSONArray getTemplates(int userId, String categoryId,String type, String searchTxt){
         try{
             List<Object> params = new ArrayList<>();
-            String query = "SELECT * FROM templates where created_by=? and category_id=? ";
+
+            String query = "SELECT t.*,count(rd.id) as template_downloads FROM templates t LEFT JOIN recent_downloads rd ON t.id = rd.template_id GROUP BY t.id having t.created_by=? and t.category_id=? ";
             params.add(userId);
             params.add(categoryId);
 
@@ -59,6 +60,7 @@ public class TemplatesService {
                     obj.put("description", CommonMethods.parseNullString(rs.getString("description")));
                     obj.put("category_id", rs.getString("category_id"));
                     obj.put("actual_file_name", rs.getString("actual_file_name"));
+                    obj.put("template_downloads", rs.getString("template_downloads"));
 
                     String docUrl="";
                     if(type.equals("doc")){
