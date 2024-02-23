@@ -218,7 +218,7 @@ public class UserService{
 
     public JSONArray getAllUsers(String userId){
         try{
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users where id != ? order by id",userId);
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM users where id != ? AND profile_id != (select id from profiles where role='super_admin') order by id",userId);
 
             JSONArray jsonArray = new JSONArray();
             for (Map<String, Object> row : rows) {

@@ -260,7 +260,7 @@ public class TemplatesService {
             String oldFileName = obj.getString("actual_file_name");
             String docUrl = getTemplateUrl(type.equals("doc") ? "user_documents" : "admin_documents", userId, obj.getString("category_id"));
 
-            if(!file.isEmpty()){
+            if(file != null && !file.isEmpty()){
                 String newFileName = obj.getString("title") + getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));
                 if(uploadFile(file, docUrl,newFileName)){
 

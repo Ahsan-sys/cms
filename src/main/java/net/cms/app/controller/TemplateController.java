@@ -218,7 +218,7 @@ public class TemplateController {
     }
 
     @PutMapping
-    public ResponseEntity<String> updateTemplateApi(HttpServletRequest request, @RequestParam("file") MultipartFile file,@RequestParam("data") String obj){
+    public ResponseEntity<String> updateTemplateApi(HttpServletRequest request, @RequestParam(required = false) MultipartFile file,@RequestParam("data") String obj){
         GenericResponse rsp = new GenericResponse();
         try{
             JSONObject templateObj = new JSONObject(obj);
@@ -226,7 +226,7 @@ public class TemplateController {
                 rsp.setMessage("Template id is missing");
                 rsp.setStatus(0);
             }else{
-                if(!file.isEmpty()){
+                if(file != null){
                     if(!CommonMethods.isSupportedFileType(file.getContentType())){
                         rsp.setMessage("File type is invalid");
                         rsp.setStatus(0);

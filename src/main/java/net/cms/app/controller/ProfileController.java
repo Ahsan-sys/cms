@@ -140,6 +140,9 @@ public class ProfileController {
             }else if(profileService.getProfileWithId(Integer.parseInt(profileObj.getString("profile_id"))).getString("role").equalsIgnoreCase("super_admin")){
                 rsp.setStatus(0);
                 rsp.setMessage("Can not update role super admin");
+            }else if(profileService.getProfileWithId(Integer.parseInt(profileObj.getString("profile_id"))).getString("role").equalsIgnoreCase("user")){
+                rsp.setStatus(0);
+                rsp.setMessage("Can not update role user");
             }else{
                 profileObj.put("updated_by",userId);
                 if(profileService.updateRole(profileObj)){
@@ -163,6 +166,9 @@ public class ProfileController {
         }else if(profileService.getProfileWithId(id).getString("role").equalsIgnoreCase("super_admin")){
             rsp.setStatus(0);
             rsp.setMessage("Can not delete role super admin");
+        }else if(profileService.getProfileWithId(id).getString("role").equalsIgnoreCase("user")){
+            rsp.setStatus(0);
+            rsp.setMessage("Can not delete role user");
         }else{
             if(!profileService.profileHasUsers(id)){
                 if(profileService.deleteRole(id)){
